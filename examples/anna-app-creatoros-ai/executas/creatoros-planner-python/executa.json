@@ -21,16 +21,22 @@
         "binary_urls": {
           "darwin-arm64": {
             "url": "https://github.com/imthegoodboy/CreatorOss-anna/releases/download/creatoros-planner-v0.1.1/tool-nikku696969-creatoros-planner-vhsarfsp-darwin-arm64.tar.gz",
+            "sha256": "8dd4ba451bf6a5c1e3826fc830cafc7c576a3c4b9fe5529a552b1101155e038b",
+            "size": 7812702,
             "entrypoint": "bin/tool-nikku696969-creatoros-planner-vhsarfsp",
             "format": "tar.gz"
           },
           "darwin-x86_64": {
             "url": "https://github.com/imthegoodboy/CreatorOss-anna/releases/download/creatoros-planner-v0.1.1/tool-nikku696969-creatoros-planner-vhsarfsp-darwin-x86_64.tar.gz",
+            "sha256": "26a9ee2aaf3430de58fe1ff83dc0f3e1281d8e23a6985063f5901206e93ffeec",
+            "size": 8367782,
             "entrypoint": "bin/tool-nikku696969-creatoros-planner-vhsarfsp",
             "format": "tar.gz"
           },
           "linux-x86_64": {
             "url": "https://github.com/imthegoodboy/CreatorOss-anna/releases/download/creatoros-planner-v0.1.1/tool-nikku696969-creatoros-planner-vhsarfsp-linux-x86_64.tar.gz",
+            "sha256": "54a0df25e68069e4e9be30a7af150c486f32f2cff3c3197160a034766138ad47",
+            "size": 20381000,
             "entrypoint": "bin/tool-nikku696969-creatoros-planner-vhsarfsp",
             "format": "tar.gz"
           }
