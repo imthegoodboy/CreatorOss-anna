@@ -1,10 +1,21 @@
 # Anna App Developer Playbook
 
-Last verified: 2026-06-19 with `anna-app` CLI `0.1.30`.
+Last verified: 2026-06-20 with `anna-app` CLI `0.1.30`.
 
 This is the reusable checklist for building, previewing, pushing, reviewing, and releasing Anna Apps from this workspace.
 
-Official docs checked:
+Production docs checked:
+
+- https://anna.partners/dashboard
+- https://anna.partners/developers/overview/welcome
+- https://anna.partners/developers/overview/welcome.md
+- https://anna.partners/developers/reference
+- https://anna.partners/developers/reference.md
+- https://anna.partners/developers/reference/cli.md
+- https://anna.partners/developers/reference/lifecycle.md
+- https://anna.partners/developers/reference/executa-distribution.md
+
+Staging docs previously checked:
 
 - https://staging.anna.partners/developers/overview/welcome
 - https://staging.anna.partners/developers/apps/app-intro
@@ -570,11 +581,11 @@ anna-app validate --strict
 anna-app dev --port 5182 --llm-account https://anna.partners
 ```
 
-Push/cut/review:
+Push/cut/review for a new version:
 
 ```powershell
 anna-app apps push --account https://anna.partners --json
-anna-app apps publish --account https://anna.partners --json
+anna-app apps cut 0.1.11 --account https://anna.partners --json
 anna-app apps submit-review creatoros-ai --account https://anna.partners --json
 anna-app apps status creatoros-ai --account https://anna.partners --json
 ```
@@ -597,7 +608,11 @@ latest_push_revision: 10
 executa_version: 0.1.1
 executa_distribution: binary
 status: pending_review
+dashboard_badge: WORKING / In review
+dashboard_card_version: v0.0.0 shown on card, but CLI versions confirms cut version 0.1.11 exists
 ```
+
+Do not push/cut another CreatorOS version while the current version is in review unless Anna rejects it or requests changes. A new cut can make review state harder to track.
 
 ## 15. Secrets And Environment Variables
 
