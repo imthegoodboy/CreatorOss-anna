@@ -12,6 +12,7 @@ Official docs checked:
 - https://staging.anna.partners/developers/apps/app-ui-overview
 - https://staging.anna.partners/developers/apps/app-ui-host-api
 - https://staging.anna.partners/developers/reference/cli
+- https://forum.anna.partners/t/dont-just-run-locally-a-hands-on-guide-to-packaging-anna-executa-as-a-releasable-binary/140
 
 ## 1. Mental Model
 
