@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <title>CreatorOS AI</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="anna-tool-ids.js" defer></script>
+    <script src="app.js" type="module"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar" aria-label="CreatorOS AI">
+        <div class="brand">
+          <img class="brand__icon" src="icon.svg" width="32" height="32" alt="" />
+          <div class="brand__copy">
+            <div class="brand__name">CreatorOS AI</div>
+            <div class="brand__meta" id="connection-label">Standalone preview</div>
+          </div>
+        </div>
+        <div class="topbar__actions">
+          <span class="status-dot" id="connection-dot" aria-hidden="true"></span>
+          <button class="icon-button" id="reset-demo" type="button" title="Reset workspace" aria-label="Reset workspace">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12a8 8 0 1 0 2.34-5.66M4 4v6h6" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="app-layout">
+        <nav class="sidebar" aria-label="CreatorOS sections">
+          <button class="nav-item is-active" id="nav-chat" type="button" data-view="chat">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 6.5h14M5 11.5h9M8 18l-3 3v-4.5A2.5 2.5 0 0 1 2.5 14V5A2.5 2.5 0 0 1 5 2.5h14A2.5 2.5 0 0 1 21.5 5v9A2.5 2.5 0 0 1 19 16.5h-8" />
+            </svg>
+            <span>Chat</span>
+          </button>
+          <button class="nav-item" id="nav-workflow" type="button" data-view="workflow">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 6h12M8 12h12M8 18h12M3.5 6l1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2" />
+            </svg>
+            <span>Workflow</span>
+          </button>
+          <button class="nav-item" id="nav-uploads" type="button" data-view="uploads">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 16V4M7.5 8.5 12 4l4.5 4.5M5 19.5h14" />
+            </svg>
+            <span>Uploads</span>
+          </button>
+          <button class="nav-item" id="nav-integrations" type="button" data-view="integrations">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 8h8M8 16h8M12 2.5v5M12 16.5v5M4.5 12h5M14.5 12h5" />
+            </svg>
+            <span>Integrations</span>
+          </button>
+        </nav>
+
+        <section class="workspace" aria-live="polite">
+          <section class="view is-active" id="view-chat" data-view-panel="chat" aria-label="CreatorOS chatbot">
+            <div class="chat-panel">
+              <div class="chat-scroll" id="message-list" aria-live="polite"></div>
+
+              <form id="chat-form" class="composer" novalidate>
+                <div class="platform-strip" id="platform-strip" aria-label="Selected platforms"></div>
+
+                <div class="composer__box">
+                  <button class="icon-button upload-control" id="upload-btn" type="button" title="Upload media" aria-label="Upload media">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                  </button>
+                  <input class="sr-only" id="file-input" type="file" accept="video/*,image/*" />
+                  <label class="sr-only" for="prompt-input">CreatorOS message</label>
+                  <textarea
+                    id="prompt-input"
+                    rows="1"
+                    autocomplete="off"
+                    spellcheck="true"
+                    aria-describedby="prompt-help"
+                    placeholder="Message CreatorOS"
+                  ></textarea>
+                  <button class="send-button" id="send-btn" type="submit">
+                    <span class="send-button__label">Send</span>
+                  </button>
+                </div>
+
+                <div class="selected-upload" id="selected-upload" hidden></div>
+                <div class="mention-menu" id="mention-menu" role="listbox" aria-label="Platform suggestions" hidden></div>
+                <p class="helper sr-only" id="prompt-help">Ready.</p>
+              </form>
+            </div>
+          </section>
+
+          <section class="view" id="view-workflow" data-view-panel="workflow" aria-label="Workflow">
+            <div class="page-head">
+              <div>
+                <h1>Workflow</h1>
+                <p class="muted">Plans, approvals, and scheduled actions prepared by the agent.</p>
+              </div>
+              <button class="rail-button rail-button--primary compact-action" id="status-refresh-btn" type="button">Refresh status</button>
+            </div>
+            <div class="workflow-grid">
+              <section class="surface">
+                <h2>Scheduled actions</h2>
+                <ol class="task-list" id="scheduled-tasks"></ol>
+              </section>
+              <section class="surface">
+                <h2>Plan calendar</h2>
+                <ol class="calendar-list" id="workflow-calendar"></ol>
+              </section>
+            </div>
+          </section>
+
+          <section class="view" id="view-uploads" data-view-panel="uploads" aria-label="Uploads">
+            <div class="page-head">
+              <div>
+                <h1>Uploads</h1>
+                <p class="muted">Source videos or images the chat can schedule after review.</p>
+              </div>
+              <button class="rail-button rail-button--primary compact-action" id="upload-page-button" type="button">Upload</button>
+            </div>
+            <button class="upload-dropzone" id="upload-dropzone" type="button">
+              <span>Drop or choose media</span>
+              <small>Videos and images are kept local unless Anna upload is available.</small>
+            </button>
+            <ol class="upload-list" id="uploads-list"></ol>
+          </section>
+
+          <section class="view" id="view-integrations" data-view-panel="integrations" aria-label="Integrations">
+            <div class="page-head">
+              <div>
+                <h1>Integrations</h1>
+                <p class="muted">Composio, Anna host APIs, and optional video provider settings.</p>
+              </div>
+              <button class="rail-button rail-button--primary compact-action" id="integration-check-btn" type="button">Check tools</button>
+            </div>
+            <div class="integration-grid">
+              <section class="surface">
+                <h2>Media channels</h2>
+                <div class="connect-row">
+                  <label class="field field--inline">
+                    <span>Platform</span>
+                    <select id="connect-platform-select">
+                      <option value="YouTube">YouTube</option>
+                      <option value="Instagram">Instagram</option>
+                      <option value="TikTok">TikTok</option>
+                    </select>
+                  </label>
+                  <button class="rail-button rail-button--primary compact-action" id="connect-media-btn" type="button">Connect media</button>
+                </div>
+                <p class="muted" id="connect-status">No channel connection started.</p>
+                <div class="connect-link" id="connect-link" hidden></div>
+                <ol class="connection-list" id="connection-list"></ol>
+              </section>
+              <section class="surface">
+                <h2>Status</h2>
+                <p class="muted" id="integration-status">Check integrations before handoff.</p>
+                <dl class="status-list" id="integration-report"></dl>
+              </section>
+              <section class="surface">
+                <h2>Video provider</h2>
+                <label class="field">
+                  <span>Video API key</span>
+                  <input
+                    id="video-key-input"
+                    type="password"
+                    autocomplete="new-password"
+                    placeholder="Paste key for this session"
+                  />
+                </label>
+                <label class="field">
+                  <span>Video endpoint</span>
+                  <input
+                    id="video-endpoint-input"
+                    type="url"
+                    inputmode="url"
+                    placeholder="https://api.video-provider.com/generate"
+                  />
+                </label>
+                <button class="rail-button" id="save-config-btn" type="button">Use video key</button>
+              </section>
+            </div>
+          </section>
+        </section>
+
+        <aside class="inspector" aria-label="Agent inspector">
+          <section class="surface">
+            <h2>Agent status</h2>
+            <dl class="status-list" id="agent-status"></dl>
+            <p class="muted" id="handoff-status" aria-live="polite">Waiting for a generated plan.</p>
+          </section>
+
+          <section class="surface">
+            <h2>Review queue</h2>
+            <p class="muted" id="review-summary">Generate a plan to start review.</p>
+            <ol class="review-list" id="review-list"></ol>
+          </section>
+
+          <section class="surface">
+            <h2>Current plan</h2>
+            <dl class="plan-facts" id="plan-facts"></dl>
+          </section>
+
+          <section class="surface surface--actions">
+            <button class="rail-button" id="thumbnail-btn" type="button">Thumbnail brief</button>
+            <button class="rail-button" id="video-brief-btn" type="button">Video job</button>
+            <button class="rail-button rail-button--primary" id="send-review-btn" type="button">Send review</button>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+  </body>
+</html>

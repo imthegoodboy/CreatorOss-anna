@@ -1,0 +1,41 @@
+{
+  "slug": "creatoros-planner",
+  "name": "CreatorOS Planner",
+  "version": "0.1.1",
+  "executa_type": "tool",
+  "description": "Plans creator content workflows for CreatorOS AI.",
+  "tool_id": "tool-nikku696969-creatoros-planner-vhsarfsp",
+  "type": "python",
+  "enabled": true,
+  "distribution": {
+    "active": "binary",
+    "profiles": {
+      "local": {
+        "type": "local",
+        "supports_protocol": true
+      },
+      "binary": {
+        "type": "binary",
+        "executable_name": "tool-nikku696969-creatoros-planner-vhsarfsp",
+        "supports_protocol": true,
+        "binary_urls": {
+          "darwin-arm64": {
+            "url": "https://github.com/imthegoodboy/CreatorOss-anna/releases/download/creatoros-planner-v0.1.1/tool-nikku696969-creatoros-planner-vhsarfsp-darwin-arm64.tar.gz",
+            "entrypoint": "bin/tool-nikku696969-creatoros-planner-vhsarfsp",
+            "format": "tar.gz"
+          },
+          "darwin-x86_64": {
+            "url": "https://github.com/imthegoodboy/CreatorOss-anna/releases/download/creatoros-planner-v0.1.1/tool-nikku696969-creatoros-planner-vhsarfsp-darwin-x86_64.tar.gz",
+            "entrypoint": "bin/tool-nikku696969-creatoros-planner-vhsarfsp",
+            "format": "tar.gz"
+          },
+          "linux-x86_64": {
+            "url": "https://github.com/imthegoodboy/CreatorOss-anna/releases/download/creatoros-planner-v0.1.1/tool-nikku696969-creatoros-planner-vhsarfsp-linux-x86_64.tar.gz",
+            "entrypoint": "bin/tool-nikku696969-creatoros-planner-vhsarfsp",
+            "format": "tar.gz"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "anna-app-creatoros-ai",
+  "private": true,
+  "version": "0.1.11",
+  "description": "CreatorOS AI - Anna App for planning creator growth workflows.",
+  "scripts": {
+    "dev": "anna-app dev",
+    "validate": "anna-app validate --strict",
+    "test": "node tests/smoke.mjs"
+  },
+  "devDependencies": {
+    "@anna-ai/cli": "^0.1.30"
+  }
+}

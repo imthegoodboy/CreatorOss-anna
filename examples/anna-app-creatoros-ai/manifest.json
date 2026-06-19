@@ -1,0 +1,73 @@
+{
+  "schema": 2,
+  "permissions": [
+    "tools.invoke",
+    "chat.append_artifact",
+    "storage.read",
+    "storage.write",
+    "ui.svg"
+  ],
+  "required_executas": [
+    {
+      "tool_id": "bundled:creatoros-planner",
+      "min_version": "0.1.1",
+      "version": "latest"
+    }
+  ],
+  "optional_executas": [],
+  "system_prompt_addendum": "The user has CreatorOS AI available. Use it for creator growth planning and social workflow operations: convert goals into reviewable plans, track agent status, accept uploaded media, prepare scheduling/publishing packets, and keep the user in control before publishing-oriented actions. Prefer the bundled creatoros-planner Executa for strategy/calendar/script/caption/upload/scheduling/status/video-job generation. If the UI is useful, summon the main view with open_app_view. Never claim content was published or a video was generated unless the user explicitly approved it and an actual external tool returned success. Publishing uses Composio only when COMPOSIO_API_KEY and connected platform accounts are configured.",
+  "user_message_prefix_template": "[CreatorOS AI] {user_message}",
+  "tags": ["creator", "social-media", "planning", "content", "workflow"],
+  "ui": {
+    "bundle": {
+      "format": "static-spa",
+      "entry": "index.html",
+      "external_origins": []
+    },
+    "views": [
+      {
+        "name": "main",
+        "title": "CreatorOS AI",
+        "default": true,
+        "entry": "index.html",
+        "min_size": { "w": 360, "h": 560 },
+        "default_size": { "w": 1120, "h": 760 },
+        "max_size": { "w": 1600, "h": 1100 },
+        "resizable": true,
+        "movable": true,
+        "single_instance": true,
+        "summary_template": "CreatorOS plan: {goal}",
+        "icon": "icon.svg"
+      }
+    ],
+    "host_api": {
+      "tools": ["required:bundled:creatoros-planner"],
+      "chat": ["append_artifact"],
+      "artifact": [],
+      "llm": [],
+      "fs": [],
+      "storage": ["get", "set", "delete", "list"],
+      "prefs": [],
+      "window": ["set_title"],
+      "image": ["generate"],
+      "upload": ["inline", "negotiate", "confirm"],
+      "files": ["upload_init", "upload_finalize", "download_url", "list", "delete"],
+      "agent": {
+        "session": { "auto": true },
+        "tools": []
+      }
+    },
+    "csp_overrides": {
+      "img-src": ["'self'", "data:", "blob:", "https:"],
+      "font-src": ["'self'", "data:"],
+      "style-src": ["'self'"],
+      "script-src": ["'self'"],
+      "connect-src": ["'self'", "https:"]
+    },
+    "state_merge": "last_writer_wins"
+  },
+  "dev": {
+    "seed_storage": {},
+    "user_id": 1
+  }
+}

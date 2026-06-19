@@ -1,0 +1,9 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CreatorOS AI">
+  <rect x="10" y="10" width="108" height="108" rx="24" fill="#F7F2E8"/>
+  <rect x="24" y="28" width="80" height="12" rx="6" fill="#2F2A22"/>
+  <rect x="24" y="52" width="36" height="10" rx="5" fill="#A8641A"/>
+  <rect x="68" y="52" width="36" height="10" rx="5" fill="#B9AA91"/>
+  <rect x="24" y="76" width="80" height="24" rx="12" fill="#2F2A22"/>
+  <circle cx="40" cy="88" r="5" fill="#F7F2E8"/>
+  <path d="M55 89H92" stroke="#F7F2E8" stroke-width="6" stroke-linecap="round"/>
+</svg>
