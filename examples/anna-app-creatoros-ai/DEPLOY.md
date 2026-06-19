@@ -105,20 +105,20 @@ From the app directory:
 anna-app whoami --json
 anna-app validate --strict
 anna-app apps push
-anna-app apps cut 0.1.0
-anna-app apps release 0.1.0
+anna-app apps publish
+anna-app apps release 0.1.11
 ```
 
 Current production draft identity:
 
 - App slug: `creatoros-ai`
 - App id: `75`
-- Latest cut version: `0.1.8`
-- Latest cut version id: `176`
+- Latest cut version: `0.1.11`
+- Latest cut version id: `184`
 - Bundled Executa handle: `creatoros-planner`
 - Platform Tool ID: `tool-nikku696969-creatoros-planner-vhsarfsp`
 
-Keep the app manifest on `bundled:creatoros-planner`. Local source mode keeps the placeholder `tool-test-creatoros-planner-12345678` because the dev harness whitelists that id. Production push/cut maps the bundled handle to the platform Tool ID, and the binary workflow uses `TOOL_ID_OVERRIDE` to build real production artifacts named with `tool-nikku696969-creatoros-planner-vhsarfsp`.
+Keep the app manifest on `bundled:creatoros-planner`. The Executa metadata and Python script entry use the real platform Tool ID, `tool-nikku696969-creatoros-planner-vhsarfsp`, so source mode, binary packaging, Agent shims, and Anna publishing all point at the same tool identity.
 
 Fast draft push command:
 
@@ -172,7 +172,7 @@ Run the workflow from GitHub Actions:
 Actions -> Build CreatorOS planner binaries -> Run workflow
 ```
 
-The workflow builds production Tool ID artifacts for `tool-nikku696969-creatoros-planner-vhsarfsp` while leaving local dev source mode on the test id. It builds:
+The workflow builds production Tool ID artifacts for `tool-nikku696969-creatoros-planner-vhsarfsp`. It builds:
 
 - `darwin-arm64` on `macos-14`
 - `darwin-x86_64` on `macos-15-intel`
@@ -184,6 +184,12 @@ Release assets are named:
 tool-nikku696969-creatoros-planner-vhsarfsp-darwin-arm64.tar.gz
 tool-nikku696969-creatoros-planner-vhsarfsp-darwin-x86_64.tar.gz
 tool-nikku696969-creatoros-planner-vhsarfsp-linux-x86_64.tar.gz
+```
+
+Current release tag:
+
+```text
+https://github.com/imthegoodboy/CreatorOss-anna/releases/tag/creatoros-planner-v0.1.1
 ```
 
 Each archive contains:
@@ -236,9 +242,9 @@ Last verified locally:
 - `node --check bundle/app.js` passes.
 - `python -m py_compile executas\creatoros-planner-python\creatoros_planner_plugin.py` passes.
 - Anna dev harness responds on `http://localhost:5182/` using `--llm-account https://anna.partners`.
-- Rendered QA verified plan generation, `@` platform selection, `Connect media`, real YouTube auth-link creation, Instagram auth-link creation through the Executa, TikTok custom-auth messaging, upload registration, chat-driven scheduling, scheduled-action-first Workflow layout, settled loading labels, explicit Composio auth-config status, and mobile no-overflow.
+- Rendered QA verified plan generation, `@` platform selection, `Connect media`, real YouTube auth-link creation, Instagram auth-link creation through the Executa, TikTok custom-auth messaging, upload registration, chat-driven scheduling, approved-task execution guards, scheduled-action-first Workflow layout, settled loading labels, explicit Composio auth-config status, and mobile no-overflow.
 - `anna-app apps sync-meta --account https://anna.partners --json` returned the expected production listing copy. On Windows the CLI can still terminate with `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` after doing the server-side work.
-- `anna-app apps push --account https://anna.partners --json` succeeded at revision `9`.
+- `anna-app apps push --account https://anna.partners --json` succeeded at revision `10`.
 - Production app id: `75`.
 - Production slug: `creatoros-ai`.
 - Version `0.1.0` was cut as version id `150`.
@@ -250,7 +256,10 @@ Last verified locally:
 - Version `0.1.6` was cut as version id `168`.
 - Version `0.1.7` was cut as version id `172`.
 - Version `0.1.8` was cut as version id `176`.
-- Current frozen Executa: `tool-nikku696969-creatoros-planner-vhsarfsp`, version `0.1.0`, version id `95`.
+- Version `0.1.9` was cut as version id `181` before binary distribution was enabled.
+- Version `0.1.10` was cut as version id `182` before binary distribution metadata was finalized.
+- Version `0.1.11` was cut as version id `184` with binary distribution active.
+- Current Executa: `tool-nikku696969-creatoros-planner-vhsarfsp`, version `0.1.1`, distribution `binary`.
 - Current server status: `pending_review`.
 - `anna-app apps submit-review creatoros-ai --account https://anna.partners --json` is blocked because the app is already `pending_review`.
-- `anna-app apps release 0.1.8 --account https://anna.partners --json` is blocked until Anna approves the app: `app status is pending_review; release not permitted — app must be APPROVED or PUBLISHED to release`.
+- `anna-app apps release 0.1.11 --account https://anna.partners --json` is blocked until Anna approves the app: `app status is pending_review; release not permitted — app must be APPROVED or PUBLISHED to release`.

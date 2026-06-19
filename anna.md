@@ -322,6 +322,8 @@ Example `executa.json`:
 }
 ```
 
+For production packaging, replace the dev placeholder with the real minted Anna `tool_id` and use the same value as the Python console-script name. This keeps app dependencies, Agent shims, binary archive names, and platform distribution on one identity.
+
 Anna dev harness auto-discovers Executas under `executas/` in this order:
 
 1. `executa.json`
@@ -571,7 +573,7 @@ Push/cut/review:
 
 ```powershell
 anna-app apps push --account https://anna.partners --json
-anna-app apps cut 0.1.8 --account https://anna.partners --json
+anna-app apps publish --account https://anna.partners --json
 anna-app apps submit-review creatoros-ai --account https://anna.partners --json
 anna-app apps status creatoros-ai --account https://anna.partners --json
 ```
@@ -579,7 +581,7 @@ anna-app apps status creatoros-ai --account https://anna.partners --json
 Release after approval:
 
 ```powershell
-anna-app apps release 0.1.8 --account https://anna.partners --json
+anna-app apps release 0.1.11 --account https://anna.partners --json
 ```
 
 Current known production state:
@@ -588,10 +590,11 @@ Current known production state:
 host: https://anna.partners
 app_id: 75
 slug: creatoros-ai
-latest_cut_version: 0.1.8
-latest_cut_version_id: 176
-latest_push_revision: 9
-frozen_executa_version: 0.1.0
+latest_cut_version: 0.1.11
+latest_cut_version_id: 184
+latest_push_revision: 10
+executa_version: 0.1.1
+executa_distribution: binary
 status: pending_review
 ```
 
