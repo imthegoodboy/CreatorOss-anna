@@ -30,6 +30,12 @@ if (!manifest.permissions?.includes("llm.complete") || !manifest.ui?.host_api?.l
 if (!pyproject.includes(`version = "${executaMeta.version}"`)) {
   throw new Error("pyproject.toml version must match executa.json version");
 }
+for (const platform of ["darwin-arm64", "darwin-x86_64", "linux-x86_64", "windows-x86_64"]) {
+  const asset = executaMeta.distribution?.profiles?.binary?.binary_urls?.[platform];
+  if (!asset?.url?.includes(`creatoros-planner-v${executaMeta.version}`) || !asset.sha256 || !asset.size) {
+    throw new Error(`binary distribution metadata missing or stale for ${platform}`);
+  }
+}
 if (JSON.stringify(appMeta).includes("example.com")) {
   throw new Error("app listing metadata must not contain placeholder example.com URLs");
 }
