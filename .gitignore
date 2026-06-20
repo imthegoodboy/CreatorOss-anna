@@ -20,3 +20,7 @@ examples/anna-app-focus-flow/executas/focus-session-go/focus-session-go
 
 # Local anna-app dev registration cache
 .anna/
+
+# Local Anna dev harness logs
+.anna-local/
+examples/*/.anna-local/
