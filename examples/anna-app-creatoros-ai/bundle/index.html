@@ -126,6 +126,19 @@
               <span>Drop or choose media</span>
               <small>Videos and images are kept local unless Anna upload is available.</small>
             </button>
+            <div class="media-url-row">
+              <label class="field">
+                <span>Public URL for selected media</span>
+                <input
+                  id="media-url-input"
+                  type="url"
+                  inputmode="url"
+                  placeholder="https://cdn.example.com/video.mp4"
+                />
+              </label>
+              <button class="rail-button" id="save-media-url-btn" type="button">Use media URL</button>
+            </div>
+            <p class="muted" id="media-url-status">Select an upload to attach a provider-accessible media URL.</p>
             <ol class="upload-list" id="uploads-list"></ol>
           </section>
 

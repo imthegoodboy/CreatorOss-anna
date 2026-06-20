@@ -33,6 +33,9 @@ const els = {
   uploadButton: $("#upload-btn"),
   uploadPageButton: $("#upload-page-button"),
   fileInput: $("#file-input"),
+  mediaUrl: $("#media-url-input"),
+  saveMediaUrl: $("#save-media-url-btn"),
+  mediaUrlStatus: $("#media-url-status"),
   uploadDropzone: $("#upload-dropzone"),
   selectedUpload: $("#selected-upload"),
   mention: $("#mention-menu"),
@@ -125,6 +128,7 @@ function bindUi() {
   els.uploadDropzone.addEventListener("dragleave", onDragLeave);
   els.uploadDropzone.addEventListener("drop", onDropUpload);
   els.fileInput.addEventListener("change", () => onFilesSelected(els.fileInput.files));
+  els.saveMediaUrl.addEventListener("click", onSaveMediaUrl);
   document.addEventListener("click", (event) => {
     if (!els.form.contains(event.target)) hideMentionMenu();
   });
@@ -288,17 +292,20 @@ async function handleScheduleMessage(raw, platforms) {
 }
 
 async function handleStatusMessage() {
+  const channels = channelSummary();
   appState.agentStatus = await planner("agent_status", {
     plan: appState.plan,
     uploads: appState.uploads,
     tasks: appState.tasks,
-    connections: appState.connections.channels,
+    connections: activeConnections(),
+    inactive_connections: inactiveConnections(),
     approved_ids: appState.approvedIds,
   });
   const agentNote = await annaAgentNote("status", {
     campaign: appState.agentStatus.campaign,
     tasks_waiting: appState.agentStatus.tasks_waiting,
-    channels: appState.agentStatus.connected_channels,
+    active_channels: channels.active,
+    reconnect_required: channels.attention,
     composio_configured: appState.agentStatus.composio_configured,
   });
   if (agentNote) appState.agentStatus.agent_note = agentNote;
@@ -313,7 +320,10 @@ async function handleStatusMessage() {
 }
 
 async function annaAgentNote(kind, payload) {
-  if (!anna?.agent?.session) return null;
+  if (!anna?.llm?.complete && !anna?.agent?.session) {
+    appState.integrations.llmStatus = "not_granted";
+    return null;
+  }
   const prompt = [
     "You are the Anna host agent helping CreatorOS AI.",
     "Return one concise operator note, maximum 22 words.",
@@ -321,13 +331,35 @@ async function annaAgentNote(kind, payload) {
     `Context kind: ${kind}`,
     `Payload: ${JSON.stringify(payload)}`,
   ].join("\n");
-  return withTimeout(readAnnaAgentText(prompt), 12000).catch((err) => {
+  const direct = await withTimeout(readAnnaLlmText(prompt), 10000).catch((err) => {
+    console.warn("[creatoros-ai] anna llm.complete unavailable:", err?.message || err);
+    return null;
+  });
+  if (direct) {
+    appState.integrations.llmStatus = "responded";
+    return direct;
+  }
+  const viaAgent = await withTimeout(readAnnaAgentText(prompt), 12000).catch((err) => {
     console.warn("[creatoros-ai] anna agent note unavailable:", err?.message || err);
     return null;
   });
+  appState.integrations.llmStatus = viaAgent ? "responded" : "timeout_or_empty";
+  return viaAgent;
+}
+
+async function readAnnaLlmText(prompt) {
+  if (!anna?.llm?.complete) return null;
+  const reply = await anna.llm.complete({
+    systemPrompt: "You are a concise creator operations copilot inside CreatorOS AI.",
+    messages: [{ role: "user", content: { type: "text", text: prompt } }],
+    maxTokens: 80,
+    temperature: 0.2,
+  });
+  return cleanAgentText(extractCompletionText(reply));
 }
 
 async function readAnnaAgentText(prompt) {
+  if (!anna?.agent?.session) return null;
   let session = null;
   try {
     session = await anna.agent.session({
@@ -359,6 +391,23 @@ async function readAnnaAgentText(prompt) {
   }
 }
 
+function extractCompletionText(reply) {
+  if (!reply) return "";
+  if (typeof reply === "string") return reply;
+  if (typeof reply.text === "string") return reply.text;
+  if (typeof reply.output_text === "string") return reply.output_text;
+  if (Array.isArray(reply.content)) {
+    return reply.content
+      .map((part) => (typeof part === "string" ? part : part?.text || part?.content || ""))
+      .join(" ");
+  }
+  const choice = reply.choices?.[0] || reply.completion?.choices?.[0];
+  if (choice?.message?.content) return extractCompletionText(choice.message.content);
+  if (choice?.text) return choice.text;
+  if (reply.message?.content) return extractCompletionText(reply.message.content);
+  return "";
+}
+
 function cleanAgentText(text) {
   const cleaned = String(text || "")
     .replace(/\[DONE\]/gi, "")
@@ -383,6 +432,7 @@ async function updateAgentStatusQuietly() {
       uploads: appState.uploads,
       tasks: appState.tasks,
       connections: activeConnections(),
+      inactive_connections: inactiveConnections(),
       approved_ids: appState.approvedIds,
     });
     if (status?.composio_configured) appState.integrations.composioConfigured = true;
@@ -480,7 +530,7 @@ async function onSaveVideoConfig() {
   appState.integrations.videoEndpoint = endpoint;
   appState.integrations.videoKeySet = Boolean(sessionSecrets.videoApiKey);
   await saveState();
-  showToast(appState.integrations.videoKeySet ? "Video key is active for this session." : "Video endpoint saved.");
+  showToast(appState.integrations.videoKeySet ? "Video key is active for this session." : "Video endpoint saved. Use HTTPS public endpoints only.");
   render();
 }
 
@@ -563,7 +613,7 @@ async function refreshMediaConnections(options = {}) {
       platforms: PLATFORMS,
     });
     const accounts = Array.isArray(status.accounts)
-      ? status.accounts.map(stripSensitiveConnection).filter(Boolean)
+      ? normalizeConnections(status.accounts.map(stripSensitiveConnection).filter(Boolean))
       : [];
     appState.connections.channels = accounts;
     appState.connections.lastListStatus = status.status || "ready";
@@ -588,12 +638,13 @@ function applyConnectionIntegrationHint(result) {
   }
   appState.integrations.composioConfigured = true;
   const previous = appState.integrations.lastStatus || {};
+  const ready = result.status === "link_ready";
   appState.integrations.lastStatus = sanitizeIntegrations({
     ...previous,
     composio: {
       ...(previous.composio || {}),
       configured: true,
-      status: result.status === "link_error" ? "link_error" : "ready",
+      status: ready ? "auth_link_ready" : result.status,
     },
   });
 }
@@ -812,6 +863,32 @@ async function uploadToAnnaFiles(file) {
     logUploadFallback("anna files upload", err);
     return null;
   }
+}
+
+async function onSaveMediaUrl() {
+  const upload = selectedUpload();
+  if (!upload) {
+    showToast("Select an upload before adding a media URL.");
+    return;
+  }
+  const url = els.mediaUrl.value.trim();
+  if (!isPublicHttpsUrl(url)) {
+    showToast("Use a public HTTPS media URL.");
+    return;
+  }
+  const updated = {
+    ...upload,
+    url,
+    public_url: url,
+    media_url: url,
+    status: upload.status === "local_ready" ? "public_url_ready" : upload.status,
+  };
+  appState.uploads = [updated, ...appState.uploads.filter((entry) => entry.id !== upload.id)];
+  appState.selectedUploadId = updated.id;
+  els.mediaUrl.value = "";
+  await saveState();
+  render();
+  showToast("Public media URL attached to selected upload.");
 }
 
 function logUploadFallback(label, err) {
@@ -1052,6 +1129,7 @@ function createDefaultState() {
     videoJob: null,
     integrations: {
       composioConfigured: false,
+      llmStatus: "not_checked",
       videoKeySet: false,
       videoEndpoint: "",
       lastStatus: null,
@@ -1107,10 +1185,10 @@ function normalizeState(stored) {
       ...next.connections,
       ...(stored?.connections || {}),
       channels: Array.isArray(stored?.connections?.channels)
-        ? stored.connections.channels.map(stripSensitiveConnection).filter(Boolean)
+        ? normalizeConnections(stored.connections.channels.map(stripSensitiveConnection).filter(Boolean))
         : [],
       pendingLinks: Array.isArray(stored?.connections?.pendingLinks)
-        ? stored.connections.pendingLinks.map(stripSensitiveConnection).filter(Boolean)
+        ? normalizeConnections(stored.connections.pendingLinks.map(stripSensitiveConnection).filter(Boolean))
         : [],
       lastConnect: stripSensitiveConnection(stored?.connections?.lastConnect),
     },
@@ -1126,8 +1204,8 @@ function serializeState(state) {
     integrations: sanitizeIntegrations(state.integrations),
     connections: {
       ...state.connections,
-      channels: state.connections.channels.map(stripSensitiveConnection).filter(Boolean),
-      pendingLinks: state.connections.pendingLinks.map(stripSensitiveConnection).filter(Boolean),
+      channels: normalizeConnections(state.connections.channels.map(stripSensitiveConnection).filter(Boolean)),
+      pendingLinks: normalizeConnections(state.connections.pendingLinks.map(stripSensitiveConnection).filter(Boolean)),
       lastConnect: stripSensitiveConnection(state.connections.lastConnect),
     },
     messages: state.messages.map(sanitizeMessage).filter(Boolean),
@@ -1624,6 +1702,14 @@ function renderTasks() {
 
 function renderUploads() {
   els.uploadsList.replaceChildren();
+  const selected = selectedUpload();
+  els.mediaUrl.disabled = !selected;
+  els.saveMediaUrl.disabled = !selected;
+  els.mediaUrlStatus.textContent = selected
+    ? selected.url || selected.public_url || selected.media_url
+      ? "Selected media has a public URL for publishing checks."
+      : "Selected media is local only. Add a public HTTPS URL before live publishing."
+    : "Select an upload to attach a provider-accessible media URL.";
   if (!appState.uploads.length) {
     els.uploadsList.append(emptyListItem("No uploaded media yet."));
     return;
@@ -1649,7 +1735,8 @@ function renderUploads() {
     });
     head.append(h3, button);
     const p = document.createElement("p");
-    p.textContent = `${formatStatus(upload.status)} · ${formatBytes(upload.file_size || 0)} · ${upload.mime_type || "media"}`;
+    const urlState = upload.url || upload.public_url || upload.media_url ? "public URL set" : "local only";
+    p.textContent = `${formatStatus(upload.status)} · ${urlState} · ${formatBytes(upload.file_size || 0)} · ${upload.mime_type || "media"}`;
     copy.append(head, platformPills(upload.platforms || []), p);
     li.append(copy);
     els.uploadsList.append(li);
@@ -1673,10 +1760,10 @@ function renderConnections() {
 
   els.connectionList.replaceChildren();
   const rows = [];
-  for (const channel of appState.connections.channels) {
+  for (const channel of normalizeConnections(appState.connections.channels)) {
     const active = isActiveConnection(channel);
     rows.push({
-      title: `${formatStatus(channel.toolkit || "media")} channel`,
+      title: `${toolkitLabel(channel.toolkit || channel.platform || "media")} channel`,
       status: channel.status || "unknown",
       detail: active
         ? channel.alias || "Connected account"
@@ -1721,11 +1808,7 @@ function renderAgentStatus() {
 function renderIntegrations() {
   const status = appState.integrations.lastStatus;
   const sessionComposioKey = Boolean(sessionSecrets.composioApiKey);
-  const composio =
-    sessionComposioKey ||
-    status?.composio?.configured ||
-    appState.integrations.composioConfigured ||
-    appState.agentStatus?.composio_configured;
+  const readiness = composioReadiness(status);
   const composioProbe = status?.composio?.probe?.status;
   const videoKey = Boolean(sessionSecrets.videoApiKey);
   const endpoint = appState.integrations.videoEndpoint || "";
@@ -1735,7 +1818,8 @@ function renderIntegrations() {
   els.videoKey.placeholder = videoKey ? "Video key set for this session" : "Paste key for this session";
   const parts = [
     anna ? "Anna connected" : "Standalone preview",
-    composio ? `Composio ${composioProbe || "ready"}` : "Composio key needed",
+    `LLM ${llmStatusCopy(appState.integrations.llmStatus)}`,
+    `Composio ${readiness.copy}`,
     `${channels.active} active channel${channels.active === 1 ? "" : "s"}`,
     channels.attention ? `${channels.attention} need reconnect` : "",
     videoKey ? "Video key active" : "Video key not set",
@@ -1744,17 +1828,18 @@ function renderIntegrations() {
   els.integrationStatus.textContent = parts.join(" · ");
   const entries = [
     ["Anna", anna ? "Connected" : "Standalone preview"],
-    ["Composio", composio ? formatStatus(composioProbe || status?.composio?.status || "ready") : "Add session key"],
+    ["Anna LLM", llmStatusCopy(appState.integrations.llmStatus)],
+    ["Composio", readiness.copy],
     ["Composio key", sessionComposioKey ? "Active for session" : status?.composio?.configured ? "Runtime key" : "Not set"],
     ["Channels", channelCountCopy(channels)],
-    ["Composio API", composio ? status?.composio?.base_url || "Session key active" : "Add key to check"],
+    ["Composio API", readiness.hasKey ? status?.composio?.base_url || "Session key active" : "Add key to check"],
     ["Video key", videoKey ? "Active for session" : "Not set"],
-    ["Endpoint", endpoint || "Not set"],
+    ["Endpoint", endpoint ? endpointStatusCopy(endpoint) : "Not set"],
   ];
   const authConfigs = Array.isArray(status?.composio?.auth_configs) ? status.composio.auth_configs : [];
   if (authConfigs.length) {
     const missingAuth = authConfigs.filter((item) => !item.configured).map((item) => item.toolkit);
-    entries.push(["Auth configs", missingAuth.length ? `Missing ${missingAuth.join(", ")}` : "Ready"]);
+    entries.push(["Auth configs", authConfigSummary(authConfigs, missingAuth)]);
   }
   if (status?.composio?.probe?.total_items != null) {
     entries.push(["Tools", String(status.composio.probe.total_items)]);
@@ -1807,15 +1892,70 @@ function factList(entries, className) {
   return dl;
 }
 
+function composioReadiness(status = appState.integrations.lastStatus) {
+  const hasKey = Boolean(
+    sessionSecrets.composioApiKey ||
+      status?.composio?.configured ||
+      appState.integrations.composioConfigured ||
+      appState.agentStatus?.composio_configured,
+  );
+  if (!hasKey) return { hasKey: false, ready: false, copy: "key needed" };
+  const state = status?.composio?.status || status?.composio?.probe?.status || "";
+  if (/auth_failed|needs_composio_api_key/i.test(state)) return { hasKey, ready: false, copy: formatStatus(state) };
+  const authConfigs = Array.isArray(status?.composio?.auth_configs) ? status.composio.auth_configs : [];
+  const configuredAuth = authConfigs.filter((item) => item.configured).length;
+  const missingAuth = authConfigs.filter((item) => !item.configured).length;
+  if (missingAuth && !configuredAuth) return { hasKey, ready: false, copy: "auth configs missing" };
+  if (channelSummary().active > 0) return { hasKey, ready: true, copy: "ready" };
+  if (configuredAuth) return { hasKey, ready: false, copy: "connect a channel" };
+  if (state) return { hasKey, ready: state === "ready", copy: formatStatus(state) };
+  return { hasKey, ready: false, copy: "key available" };
+}
+
+function authConfigSummary(authConfigs, missingAuth) {
+  if (!authConfigs.length) return "Not checked";
+  if (!missingAuth.length) return "Ready";
+  const configured = authConfigs.filter((item) => item.configured).map((item) => item.toolkit);
+  if (configured.length) return `Ready ${configured.join(", ")}; missing ${missingAuth.join(", ")}`;
+  return `Missing ${missingAuth.join(", ")}`;
+}
+
+function llmStatusCopy(status) {
+  if (status === "responded") return "responded";
+  if (status === "not_granted") return "not granted";
+  if (status === "timeout_or_empty") return "no response yet";
+  return anna ? "not checked" : "preview only";
+}
+
+function endpointStatusCopy(endpoint) {
+  try {
+    const parsed = new URL(endpoint);
+    return parsed.protocol === "https:" ? "HTTPS endpoint set" : "HTTPS required";
+  } catch {
+    return "Invalid URL";
+  }
+}
+
+function isPublicHttpsUrl(value) {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" && Boolean(parsed.hostname) && !/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/i.test(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function statusFacts(status) {
   const channels = channelSummary();
+  const active = status.connected_channels ?? channels.active;
+  const attention = status.channels_need_reconnect ?? channels.attention;
   return factList(
     [
       ["Campaign", status.campaign || "No active campaign"],
       ["Plan items", String(status.plan_items || 0)],
       ["Approved", String(status.approved_items || 0)],
       ["Uploads", String(status.uploads || 0)],
-      ["Channels", channelCountCopy({ ...channels, active: status.connected_channels ?? channels.active })],
+      ["Channels", channelCountCopy({ active, attention, total: active + attention })],
       ["Tasks", `${status.tasks_waiting || 0} waiting / ${status.tasks_total || 0} total`],
       ["Composio", status.composio_configured ? "Configured" : "Not configured"],
     ],
@@ -1843,6 +1983,7 @@ function statusPill(status) {
     status === "needs_connected_channel" ||
     status === "needs_auth_config" ||
     status === "needs_time" ||
+    status === "provider_endpoint_blocked" ||
     status === "link_ready" ||
     /expired|disabled|revoked|error/i.test(String(status || ""));
   pill.className = `pill ${ok ? "pill--success" : warn ? "pill--warning" : ""}`.trim();
@@ -1865,15 +2006,15 @@ function connectionSummaryCopy() {
 function isActiveConnection(connection) {
   if (!connection) return false;
   const status = String(connection.status || "").toUpperCase();
-  return !connection.is_disabled && ACTIVE_CONNECTION_STATUSES.has(status);
+  return !connection.is_disabled && (connection.is_active === true || ACTIVE_CONNECTION_STATUSES.has(status));
 }
 
 function activeConnections() {
-  return appState.connections.channels.filter(isActiveConnection);
+  return normalizeConnections(appState.connections.channels).filter(isActiveConnection);
 }
 
 function inactiveConnections() {
-  return appState.connections.channels.filter((connection) => !isActiveConnection(connection));
+  return normalizeConnections(appState.connections.channels).filter((connection) => !isActiveConnection(connection));
 }
 
 function channelSummary() {
@@ -1887,6 +2028,53 @@ function channelSummary() {
 function channelCountCopy(summary = channelSummary()) {
   if (summary.attention) return `${summary.active} active / ${summary.attention} reconnect`;
   return `${summary.active} active`;
+}
+
+function normalizeConnections(connections) {
+  const best = new Map();
+  for (const raw of connections || []) {
+    if (!raw) continue;
+    const connection = stripSensitiveConnection(raw);
+    if (!connection) continue;
+    const key = connectionIdentity(connection);
+    const current = best.get(key);
+    if (!current || connectionSortScore(connection) > connectionSortScore(current)) {
+      best.set(key, connection);
+    }
+  }
+  return Array.from(best.values()).sort((a, b) => connectionSortScore(b) - connectionSortScore(a));
+}
+
+function connectionIdentity(connection) {
+  const platform = String(connection.toolkit || connection.platform || "media").toLowerCase();
+  const alias = String(connection.alias || connection.user_id || connection.auth_config?.toolkit || "default").toLowerCase();
+  const account = connection.connected_account_id || connection.id || "";
+  return account ? `${platform}:${account}` : `${platform}:${alias}`;
+}
+
+function connectionSortScore(connection) {
+  const active = isActiveConnection(connection) ? 10_000_000_000_000 : 0;
+  return active + connectionTimestamp(connection);
+}
+
+function connectionTimestamp(connection) {
+  for (const key of ["updated_at", "created_at", "expires_at"]) {
+    const value = connection?.[key];
+    if (typeof value === "number") return value > 10_000_000_000 ? value : value * 1000;
+    if (typeof value === "string") {
+      const parsed = Date.parse(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return 0;
+}
+
+function toolkitLabel(value) {
+  const key = String(value || "").toLowerCase();
+  if (key === "youtube") return "YouTube";
+  if (key === "instagram") return "Instagram";
+  if (key === "tiktok") return "TikTok";
+  return formatStatus(value || "media");
 }
 
 function emptyStatusPlan() {
@@ -2353,6 +2541,7 @@ function videoJobCopy(job) {
   if (!job) return "Video job is not available yet.";
   if (job.status === "submitted") return "Video job submitted to the configured provider.";
   if (job.status === "provider_error") return `Video provider returned an error: ${job.error || "unknown error"}`;
+  if (job.status === "provider_endpoint_blocked") return `Video endpoint blocked: ${job.error || "Use a public HTTPS provider endpoint."}`;
   if (job.status === "ready_for_provider") return "Video generation packet is ready. Add an endpoint to submit it automatically.";
   if (job.status === "needs_video_api_key") return "Video generation packet is ready, but a video provider key is required before submission.";
   return `Video job status: ${job.status || "prepared"}`;
@@ -2579,13 +2768,15 @@ function localAgentStatus(args) {
   const plan = args.plan || appState.plan;
   const uploads = args.uploads || appState.uploads;
   const tasks = args.tasks || appState.tasks;
-  const connections = args.connections || appState.connections.channels;
+  const connections = normalizeConnections(args.connections || activeConnections());
+  const inactive = normalizeConnections(args.inactive_connections || inactiveConnections());
   return {
     campaign: plan?.strategy?.campaign_name || "No active campaign",
     plan_items: plan?.calendar?.length || 0,
     approved_items: args.approved_ids?.length || appState.approvedIds.length,
     uploads: uploads.length,
-    connected_channels: connections.length,
+    connected_channels: connections.filter(isActiveConnection).length,
+    channels_need_reconnect: inactive.length,
     tasks_total: tasks.length,
     tasks_waiting: tasks.filter((task) => TASK_WAITING_STATUSES.has(task.status)).length,
     composio_configured: Boolean(args.composio_api_key),
@@ -2623,6 +2814,15 @@ function localVideoJob(args) {
       provider_configured: true,
       brief,
       note: "No provider endpoint is configured, so this is a prepared generation packet.",
+    };
+  }
+  if (endpointStatusCopy(args.video_api_endpoint) !== "HTTPS endpoint set") {
+    return {
+      status: "provider_endpoint_blocked",
+      provider_configured: true,
+      brief,
+      error: "Video providers must use a public HTTPS endpoint.",
+      note: "Use a public HTTPS provider endpoint. Localhost and plain HTTP endpoints are not submitted.",
     };
   }
   return {

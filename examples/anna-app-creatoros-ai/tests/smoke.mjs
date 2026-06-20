@@ -24,6 +24,9 @@ if (manifest.required_executas[0].min_version !== executaMeta.version) {
 if (!manifest.ui?.host_api?.files?.includes("upload_init") || !manifest.ui?.host_api?.files?.includes("upload_finalize")) {
   throw new Error("manifest must grant Anna Files upload methods for user media");
 }
+if (!manifest.permissions?.includes("llm.complete") || !manifest.ui?.host_api?.llm?.includes("complete")) {
+  throw new Error("manifest must grant direct Anna llm.complete for visible operator notes");
+}
 if (!pyproject.includes(`version = "${executaMeta.version}"`)) {
   throw new Error("pyproject.toml version must match executa.json version");
 }
@@ -50,6 +53,8 @@ for (const needle of [
   'id="view-uploads"',
   'id="upload-btn"',
   'id="file-input"',
+  'id="media-url-input"',
+  'id="save-media-url-btn"',
   'id="scheduled-tasks"',
   'id="agent-status"',
   'id="connect-media-btn"',
@@ -69,6 +74,7 @@ for (const needle of [
   "insertMention",
   "anna.tools.invoke",
   "anna.agent.session",
+  "llm?.complete",
   "files?.upload_init",
   "uploadToAnnaFiles",
   "user_artifact",
@@ -205,6 +211,8 @@ send({
       action: "agent_status",
       uploads: [{ id: "upload-test" }],
       tasks: [{ id: "task-test", status: "ready_for_review" }],
+      connections: [{ status: "ACTIVE", is_active: true, toolkit: "youtube" }],
+      inactive_connections: [{ status: "EXPIRED", toolkit: "youtube" }],
       approved_ids: ["day-1-ai-workflow-basics"],
     },
   },
@@ -268,11 +276,24 @@ send({
     },
   },
 });
+send({
+  jsonrpc: "2.0",
+  id: 11,
+  method: "invoke",
+  params: {
+    tool: "creatoros_plan",
+    arguments: {
+      action: "video_job",
+      video_api_key: "test-key",
+      video_api_endpoint: "http://localhost:9999/generate",
+    },
+  },
+});
 
 await new Promise((resolveDone, rejectDone) => {
   const timeout = setTimeout(() => rejectDone(new Error("plugin smoke timed out")), 45000);
   const poll = setInterval(() => {
-    if (responses.length >= 11) {
+    if (responses.length >= 12) {
       clearTimeout(timeout);
       clearInterval(poll);
       resolveDone();
@@ -294,6 +315,7 @@ const status = responses.find((response) => response.id === 7)?.result;
 const connect = responses.find((response) => response.id === 8)?.result;
 const connections = responses.find((response) => response.id === 9)?.result;
 const execute = responses.find((response) => response.id === 10)?.result;
+const blockedVideo = responses.find((response) => response.id === 11)?.result;
 
 if (describe?.tools?.[0]?.name !== "creatoros_plan") {
   throw new Error("describe did not expose creatoros_plan");
@@ -322,6 +344,9 @@ if (!schedule?.success || !["ready_for_review", "needs_connected_channel", "need
 if (!status?.success || status?.data?.uploads !== 1 || status?.data?.tasks_waiting !== 1) {
   throw new Error("agent status did not summarize uploads and tasks");
 }
+if (status?.data?.connected_channels !== 1 || status?.data?.channels_need_reconnect !== 1) {
+  throw new Error("agent status must separate active channels from reconnect-required accounts");
+}
 if (!connect?.success || !["link_ready", "needs_auth_config", "needs_composio_api_key", "link_error"].includes(connect?.data?.status)) {
   throw new Error("connect channel did not return a valid connection state");
 }
@@ -335,6 +360,9 @@ if (!connections?.success || !Array.isArray(connections?.data?.accounts)) {
 }
 if (!execute?.success || execute?.data?.status !== "needs_user_approval") {
   throw new Error("execute task must block without explicit user approval");
+}
+if (!blockedVideo?.success || blockedVideo?.data?.status !== "provider_endpoint_blocked") {
+  throw new Error("video job must block non-public or non-HTTPS provider endpoints");
 }
 
 console.log("CreatorOS AI smoke test passed.");

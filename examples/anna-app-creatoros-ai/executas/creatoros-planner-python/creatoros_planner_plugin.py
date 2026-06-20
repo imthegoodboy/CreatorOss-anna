@@ -9,8 +9,10 @@ local dev without external social APIs.
 from __future__ import annotations
 
 import json
+import ipaddress
 import os
 import re
+import socket
 import sys
 import time
 import urllib.error
@@ -41,7 +43,7 @@ PLATFORM_EXECUTION_TOOLS = {
 
 MANIFEST: dict[str, Any] = {
     "display_name": "CreatorOS Planner",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "description": "Creates and manages creator strategy, uploads, scheduling packets, agent status, and review payloads for CreatorOS AI.",
     "author": "CreatorOS AI",
     "license": "MIT",
@@ -71,6 +73,7 @@ MANIFEST: dict[str, Any] = {
                 {"name": "tasks", "type": "array", "items": {"type": "object"}, "description": "Known scheduled/publishing tasks.", "required": False},
                 {"name": "platform", "type": "string", "description": "Single media platform for connection actions.", "required": False},
                 {"name": "connections", "type": "array", "items": {"type": "object"}, "description": "Known connected channel records.", "required": False},
+                {"name": "inactive_connections", "type": "array", "items": {"type": "object"}, "description": "Known inactive or expired channel records for status reporting.", "required": False},
                 {"name": "user_id", "type": "string", "description": "Stable Composio end-user id for connection actions.", "required": False},
                 {"name": "callback_url", "type": "string", "description": "Optional callback URL for Composio auth links.", "required": False},
                 {"name": "prompt", "type": "string", "description": "User instruction for upload, schedule, or status actions.", "required": False},
@@ -343,6 +346,30 @@ def _post_json(url: str, api_key: str, payload: dict[str, Any]) -> dict[str, Any
         return {"ok": False, "error": str(exc.reason)}
 
 
+def _validate_public_https_endpoint(url: str) -> tuple[bool, str]:
+    parsed = urllib.parse.urlparse(url.strip())
+    if parsed.scheme != "https":
+        return False, "Video provider endpoint must use HTTPS."
+    if not parsed.hostname:
+        return False, "Video provider endpoint is missing a hostname."
+    hostname = parsed.hostname.strip().lower()
+    if hostname in {"localhost", "127.0.0.1", "::1"} or hostname.endswith(".localhost"):
+        return False, "Localhost endpoints are not allowed for provider submission."
+    try:
+        infos = socket.getaddrinfo(hostname, parsed.port or 443, type=socket.SOCK_STREAM)
+    except socket.gaierror:
+        return False, "Video provider hostname could not be resolved."
+    for info in infos:
+        address = info[4][0]
+        try:
+            ip = ipaddress.ip_address(address)
+        except ValueError:
+            return False, "Video provider hostname resolved to an invalid address."
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved or ip.is_unspecified:
+            return False, "Video provider endpoint must resolve to a public internet address."
+    return True, ""
+
+
 def _get_json(url: str, headers: dict[str, str] | None = None, timeout: int = 15) -> dict[str, Any]:
     req = urllib.request.Request(
         url,
@@ -498,6 +525,12 @@ def _active_account_by_toolkit(accounts: list[dict[str, Any]]) -> dict[str, dict
         if toolkit and not disabled and status in {"ACTIVE", "ENABLED"} and toolkit not in active:
             active[toolkit] = account
     return active
+
+
+def _is_active_connection(connection: dict[str, Any]) -> bool:
+    status = str(connection.get("status") or "").upper()
+    disabled = bool(connection.get("is_disabled"))
+    return not disabled and (bool(connection.get("is_active")) or status in {"ACTIVE", "ENABLED", "CONNECTED"})
 
 
 def _task_media_url(task: dict[str, Any]) -> str:
@@ -1042,6 +1075,7 @@ def action_agent_status(
     uploads: list[dict[str, Any]] | None = None,
     tasks: list[dict[str, Any]] | None = None,
     connections: list[dict[str, Any]] | None = None,
+    inactive_connections: list[dict[str, Any]] | None = None,
     approved_ids: list[str] | None = None,
     composio_api_key: str = "",
     **_: Any,
@@ -1052,14 +1086,18 @@ def action_agent_status(
     uploads = uploads if uploads is not None else state.get("uploads", [])
     tasks = tasks if tasks is not None else state.get("tasks", [])
     connections = connections if connections is not None else state.get("connections", [])
+    inactive_connections = inactive_connections or []
     approved_ids = approved_ids or []
     queued = [task for task in tasks if task.get("status") in EXECUTION_WAITING_STATUSES]
+    active_count = sum(1 for connection in (connections or []) if _is_active_connection(connection))
+    reconnect_count = len(inactive_connections) + sum(1 for connection in (connections or []) if not _is_active_connection(connection))
     return {
         "campaign": (source.get("strategy") or {}).get("campaign_name") or "No active campaign",
         "plan_items": len(source.get("calendar", [])),
         "approved_items": len(approved_ids),
         "uploads": len(uploads or []),
-        "connected_channels": len(connections or []),
+        "connected_channels": active_count,
+        "channels_need_reconnect": reconnect_count,
         "tasks_total": len(tasks or []),
         "tasks_waiting": len(queued),
         "composio_configured": composio_configured,
@@ -1110,6 +1148,16 @@ def action_video_job(
             "provider_configured": True,
             "brief": payload,
             "note": "No provider endpoint is configured, so the app prepared a sanitized video generation packet.",
+        }
+
+    safe_endpoint, endpoint_error = _validate_public_https_endpoint(video_api_endpoint)
+    if not safe_endpoint:
+        return {
+            "status": "provider_endpoint_blocked",
+            "provider_configured": True,
+            "brief": payload,
+            "error": endpoint_error,
+            "note": "Use a public HTTPS video provider endpoint. Localhost, private network, and plain HTTP endpoints are blocked.",
         }
 
     result = _post_json(video_api_endpoint, video_api_key, payload)

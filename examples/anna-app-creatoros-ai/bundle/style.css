@@ -877,6 +877,15 @@ select {
   gap: var(--space-sm);
 }
 
+.media-url-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-sm);
+  border-block-start: var(--rule-hairline) solid var(--color-rule);
+  padding-block-start: var(--space-sm);
+}
+
 .connect-link {
   min-width: 0;
   border-block-start: var(--rule-hairline) solid var(--color-accent);
@@ -1160,7 +1169,8 @@ select {
     width: 100%;
   }
 
-  .secret-row {
+  .secret-row,
+  .media-url-row {
     grid-template-columns: 1fr;
   }
 

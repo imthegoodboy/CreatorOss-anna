@@ -17,14 +17,28 @@ if [ ! -f "$ENTRY_FILE" ]; then
   exit 1
 fi
 
-if ! command -v uv >/dev/null 2>&1; then
+UV_BIN="${UV_BIN:-uv}"
+if ! command -v "$UV_BIN" >/dev/null 2>&1; then
+  if command -v uv.exe >/dev/null 2>&1; then
+    UV_BIN="uv.exe"
+  elif command -v uv.cmd >/dev/null 2>&1; then
+    UV_BIN="uv.cmd"
+  fi
+fi
+
+if ! command -v "$UV_BIN" >/dev/null 2>&1; then
   echo "ERROR: uv is required." >&2
   exit 1
 fi
 
 TOOL_ID="${TOOL_ID_OVERRIDE:-}"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+  PYTHON_BIN="python"
+fi
+
 if [ -z "$TOOL_ID" ]; then
-  TOOL_ID="$(python3 - <<'PY'
+  TOOL_ID="$("$PYTHON_BIN" - <<'PY'
 import json
 with open("executa.json", "r", encoding="utf-8") as f:
     print(json.load(f)["tool_id"])
@@ -32,14 +46,14 @@ PY
 )"
 fi
 
-VERSION="$(python3 - <<'PY'
+VERSION="$("$PYTHON_BIN" - <<'PY'
 import json
 with open("executa.json", "r", encoding="utf-8") as f:
     print(json.load(f).get("version") or "0.0.0")
 PY
 )"
 
-DISPLAY_NAME="$(python3 - <<'PY'
+DISPLAY_NAME="$("$PYTHON_BIN" - <<'PY'
 import json
 with open("executa.json", "r", encoding="utf-8") as f:
     data = json.load(f)
@@ -47,7 +61,7 @@ print(data.get("name") or data["tool_id"])
 PY
 )"
 
-DESCRIPTION="$(python3 - <<'PY'
+DESCRIPTION="$("$PYTHON_BIN" - <<'PY'
 import json
 with open("executa.json", "r", encoding="utf-8") as f:
     print(json.load(f).get("description") or "")
@@ -59,6 +73,14 @@ if [ -n "${PLATFORM:-}" ]; then
 else
   OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
   ARCH="$(uname -m)"
+  case "$OS" in
+    mingw*|msys*|cygwin*) OS="windows" ;;
+  esac
+  if [ "$OS" = "linux" ] && command -v cmd.exe >/dev/null 2>&1; then
+    case "$(command -v "$UV_BIN" 2>/dev/null || true)" in
+      *.exe|*.EXE) OS="windows" ;;
+    esac
+  fi
   case "$ARCH" in
     x86_64|amd64) ARCH="x86_64" ;;
     arm64|aarch64) ARCH="arm64" ;;
@@ -67,12 +89,17 @@ else
 fi
 
 case "$TARGET_PLATFORM" in
-  darwin-arm64|darwin-x86_64|linux-x86_64) ;;
+  darwin-arm64|darwin-x86_64|linux-x86_64|windows-x86_64|windows-arm64) ;;
   *)
     echo "ERROR: unsupported platform: $TARGET_PLATFORM" >&2
-    echo "Supported: darwin-arm64, darwin-x86_64, linux-x86_64" >&2
+    echo "Supported: darwin-arm64, darwin-x86_64, linux-x86_64, windows-x86_64, windows-arm64" >&2
     exit 1
     ;;
+esac
+
+BINARY_EXT=""
+case "$TARGET_PLATFORM" in
+  windows-*) BINARY_EXT=".exe" ;;
 esac
 
 echo "Tool ID:  $TOOL_ID"
@@ -83,14 +110,14 @@ echo
 rm -rf build dist "$OUT_DIR/staging-$TARGET_PLATFORM"
 mkdir -p "$OUT_DIR/staging-$TARGET_PLATFORM/bin"
 
-uv run --with pyinstaller python -m PyInstaller \
+"$UV_BIN" run --with pyinstaller "$PYTHON_BIN" -m PyInstaller \
   --onefile \
   --clean \
   --noupx \
   --name "$TOOL_ID" \
   "$ENTRY_FILE"
 
-BINARY="dist/$TOOL_ID"
+BINARY="dist/$TOOL_ID$BINARY_EXT"
 if [ ! -f "$BINARY" ]; then
   echo "ERROR: PyInstaller did not produce $BINARY" >&2
   exit 1
@@ -101,10 +128,11 @@ if [ "$(uname -s)" = "Darwin" ]; then
 fi
 
 STAGE="$OUT_DIR/staging-$TARGET_PLATFORM"
-cp "$BINARY" "$STAGE/bin/$TOOL_ID"
-chmod 0755 "$STAGE/bin/$TOOL_ID"
+ENTRYPOINT="bin/$TOOL_ID$BINARY_EXT"
+cp "$BINARY" "$STAGE/$ENTRYPOINT"
+chmod 0755 "$STAGE/$ENTRYPOINT"
 
-python3 - "$STAGE/manifest.json" "$TOOL_ID" "$VERSION" "$DISPLAY_NAME" "$DESCRIPTION" <<'PY'
+"$PYTHON_BIN" - "$STAGE/manifest.json" "$TOOL_ID" "$VERSION" "$DISPLAY_NAME" "$DESCRIPTION" "$ENTRYPOINT" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -114,7 +142,7 @@ tool_id = sys.argv[2]
 version = sys.argv[3]
 display_name = sys.argv[4]
 description = sys.argv[5]
-entrypoint = f"bin/{tool_id}"
+entrypoint = sys.argv[6]
 
 manifest = {
     "name": tool_id,
@@ -165,7 +193,7 @@ cat <<JSON
   "url": "https://github.com/<owner>/<repo>/releases/download/creatoros-planner-v$VERSION/$TOOL_ID-$TARGET_PLATFORM.tar.gz",
   "sha256": "$SHA256",
   "size": $SIZE,
-  "entrypoint": "bin/$TOOL_ID",
+  "entrypoint": "$ENTRYPOINT",
   "format": "tar.gz"
 }
 JSON

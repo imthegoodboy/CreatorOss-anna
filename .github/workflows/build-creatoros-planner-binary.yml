@@ -52,6 +52,8 @@ jobs:
             os: macos-15-intel
           - platform: linux-x86_64
             os: ubuntu-latest
+          - platform: windows-x86_64
+            os: windows-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -62,9 +64,11 @@ jobs:
 
       - name: Build binary archive
         working-directory: ${{ env.EXECUTA_DIR }}
+        shell: bash
         env:
           PLATFORM: ${{ matrix.platform }}
           TOOL_ID_OVERRIDE: ${{ needs.meta.outputs.tool_id }}
+          PYTHON_BIN: python
         run: |
           chmod +x package_binary.sh
           ./package_binary.sh
@@ -72,6 +76,7 @@ jobs:
 
       - name: Write sha256 file
         working-directory: ${{ env.EXECUTA_DIR }}
+        shell: bash
         run: |
           archive="dist-anna/${{ needs.meta.outputs.tool_id }}-${{ matrix.platform }}.tar.gz"
           if command -v shasum >/dev/null 2>&1; then

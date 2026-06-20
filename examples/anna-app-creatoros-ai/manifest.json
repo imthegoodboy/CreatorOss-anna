@@ -2,6 +2,7 @@
   "schema": 2,
   "permissions": [
     "tools.invoke",
+    "llm.complete",
     "chat.append_artifact",
     "storage.read",
     "storage.write",
@@ -10,7 +11,7 @@
   "required_executas": [
     {
       "tool_id": "bundled:creatoros-planner",
-      "min_version": "0.1.3",
+      "min_version": "0.1.4",
       "version": "latest"
     }
   ],
@@ -44,7 +45,7 @@
       "tools": ["required:bundled:creatoros-planner"],
       "chat": ["append_artifact"],
       "artifact": [],
-      "llm": [],
+      "llm": ["complete"],
       "fs": [],
       "storage": ["get", "set", "delete", "list"],
       "prefs": [],
