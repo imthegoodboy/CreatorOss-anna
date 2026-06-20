@@ -26,13 +26,13 @@ App path: examples\anna-app-creatoros-ai
 Host: https://anna.partners
 App slug: creatoros-ai
 App id: 75
-Latest app version: 0.1.13
-Latest app version id: 257
-Published at: 2026-06-20T16:03:05.330166
+Latest app version: 0.1.15
+Latest app version id: 288
+Published at: 2026-06-20T18:41:04.632673
 Executa handle: bundled:creatoros-planner
 Real tool id: tool-nikku696969-creatoros-planner-vhsarfsp
-Executa version: 0.1.3
-Binary release: creatoros-planner-v0.1.3
+Executa version: 0.1.4
+Binary release: creatoros-planner-v0.1.4
 Distribution: Binary
 ```
 
@@ -186,7 +186,7 @@ Use bundled handles in `manifest.json`:
   "required_executas": [
     {
       "tool_id": "bundled:creatoros-planner",
-      "min_version": "0.1.3",
+      "min_version": "0.1.4",
       "version": "latest"
     }
   ],
@@ -267,7 +267,7 @@ CreatorOS AI uses:
 
 ```text
 Tool ID: tool-nikku696969-creatoros-planner-vhsarfsp
-Release tag: creatoros-planner-v0.1.3
+Release tag: creatoros-planner-v0.1.4
 ```
 
 Expected release assets:
@@ -276,6 +276,7 @@ Expected release assets:
 tool-nikku696969-creatoros-planner-vhsarfsp-darwin-arm64.tar.gz
 tool-nikku696969-creatoros-planner-vhsarfsp-darwin-x86_64.tar.gz
 tool-nikku696969-creatoros-planner-vhsarfsp-linux-x86_64.tar.gz
+tool-nikku696969-creatoros-planner-vhsarfsp-windows-x86_64.tar.gz
 ```
 
 Recommended archive layout:
@@ -318,6 +319,7 @@ Runner mapping:
 macos-14       -> darwin-arm64
 macos-15-intel -> darwin-x86_64
 ubuntu-latest  -> linux-x86_64
+windows-latest -> windows-x86_64
 ```
 
 ## 10. Push, Cut, Review, Release
@@ -332,7 +334,7 @@ anna-app apps push --account https://anna.partners --json
 Cut immutable version:
 
 ```powershell
-anna-app apps cut 0.1.13 --account https://anna.partners --json
+anna-app apps cut 0.1.15 --account https://anna.partners --json
 ```
 
 Submit for review when lifecycle allows it:
@@ -351,10 +353,10 @@ anna-app apps versions creatoros-ai --account https://anna.partners --json
 Release only after Anna approval, or when updating an already published app and the platform allows release:
 
 ```powershell
-anna-app apps release 0.1.13 --account https://anna.partners --json
+anna-app apps release 0.1.15 --account https://anna.partners --json
 ```
 
-Current app is already published as `0.1.13`.
+Current app is already published as `0.1.15`.
 
 ## 11. Review-Ready Checklist
 
@@ -364,6 +366,7 @@ Before final review, prove each item:
 - Chat composer works.
 - `@` or platform selection flow works for channel/media intent.
 - Plus upload/register flow works without pretending external upload happened.
+- Public HTTPS media URL fallback works even before a local upload is selected.
 - Integrations view lets the user provide a Composio session key.
 - Missing Composio state is clear and does not block the whole UI.
 - Connected-channel state depends on Composio/tool response.
@@ -434,7 +437,7 @@ anna-app apps versions creatoros-ai --account https://anna.partners --json
 
 If the latest version has `published_at`, the release exists.
 
-For the `0.1.13` CreatorOS release, `apps release` hit this bug before publishing. The same authenticated CLI client API successfully published app version id `257`; `apps versions` is the authoritative confirmation.
+For the `0.1.15` CreatorOS release, `apps release` hit this bug before publishing. The same authenticated CLI client API successfully published app version id `288`; `apps versions` is the authoritative confirmation.
 
 ## 13. Fast Start For The Next Anna App
 
