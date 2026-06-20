@@ -96,8 +96,14 @@ for (const needle of [
   "agent_status",
   "video_job",
   "sessionSecrets",
+  "mediaUrlFileName",
+  "Public media URL added.",
+  "Paste a public HTTPS media URL",
 ]) {
   if (!appJs.includes(needle)) throw new Error(`chat app behavior missing ${needle}`);
+}
+if (appJs.includes("els.mediaUrl.disabled = !selected") || appJs.includes("Select an upload before adding a media URL")) {
+  throw new Error("public media URL fallback must work without a selected local upload");
 }
 if (!css.includes("macrostructure: Workbench")) {
   throw new Error("Hallmark Workbench chatbot stamp missing");

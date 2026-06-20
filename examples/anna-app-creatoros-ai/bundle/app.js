@@ -866,14 +866,33 @@ async function uploadToAnnaFiles(file) {
 }
 
 async function onSaveMediaUrl() {
-  const upload = selectedUpload();
-  if (!upload) {
-    showToast("Select an upload before adding a media URL.");
-    return;
-  }
   const url = els.mediaUrl.value.trim();
   if (!isPublicHttpsUrl(url)) {
     showToast("Use a public HTTPS media URL.");
+    return;
+  }
+  const upload = selectedUpload();
+  if (!upload) {
+    const fileName = mediaUrlFileName(url);
+    const created = {
+      id: `url-${Date.now()}`,
+      file_name: fileName,
+      mime_type: guessMimeType(fileName),
+      file_size: 0,
+      url,
+      public_url: url,
+      media_url: url,
+      status: "public_url_ready",
+      created_at: new Date().toISOString(),
+      platforms: appState.selectedPlatforms,
+      note: "Public HTTPS media URL supplied by the user.",
+    };
+    appState.uploads = [created, ...appState.uploads];
+    appState.selectedUploadId = created.id;
+    els.mediaUrl.value = "";
+    await saveState();
+    render();
+    showToast("Public media URL added.");
     return;
   }
   const updated = {
@@ -889,6 +908,25 @@ async function onSaveMediaUrl() {
   await saveState();
   render();
   showToast("Public media URL attached to selected upload.");
+}
+
+function mediaUrlFileName(url) {
+  try {
+    const path = new URL(url).pathname.split("/").filter(Boolean).pop();
+    return decodeURIComponent(path || "media-url.mp4").slice(0, 120) || "media-url.mp4";
+  } catch {
+    return "media-url.mp4";
+  }
+}
+
+function guessMimeType(fileName = "") {
+  const lower = fileName.toLowerCase();
+  if (lower.endsWith(".mov")) return "video/quicktime";
+  if (lower.endsWith(".webm")) return "video/webm";
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+  if (lower.endsWith(".gif")) return "image/gif";
+  return "video/mp4";
 }
 
 function logUploadFallback(label, err) {
@@ -1703,13 +1741,13 @@ function renderTasks() {
 function renderUploads() {
   els.uploadsList.replaceChildren();
   const selected = selectedUpload();
-  els.mediaUrl.disabled = !selected;
-  els.saveMediaUrl.disabled = !selected;
+  els.mediaUrl.disabled = false;
+  els.saveMediaUrl.disabled = false;
   els.mediaUrlStatus.textContent = selected
     ? selected.url || selected.public_url || selected.media_url
       ? "Selected media has a public URL for publishing checks."
       : "Selected media is local only. Add a public HTTPS URL before live publishing."
-    : "Select an upload to attach a provider-accessible media URL.";
+    : "Paste a public HTTPS media URL, or select a local upload to attach one.";
   if (!appState.uploads.length) {
     els.uploadsList.append(emptyListItem("No uploaded media yet."));
     return;

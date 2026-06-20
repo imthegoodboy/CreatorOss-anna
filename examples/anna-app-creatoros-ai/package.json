@@ -1,7 +1,7 @@
 {
   "name": "anna-app-creatoros-ai",
   "private": true,
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "CreatorOS AI - Anna App for planning creator growth workflows.",
   "scripts": {
     "dev": "anna-app dev",
