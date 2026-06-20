@@ -609,12 +609,13 @@ local_target_version: 0.1.12
 executa_local_version: 0.1.2
 executa_binary_release: creatoros-planner-v0.1.2
 executa_distribution: binary
-status: pending_review
-dashboard_badge: WORKING / In review
-dashboard_card_version: v0.0.0 shown on card, but CLI status confirms cut version 0.1.12 exists
+status: published
+latest_version_published_at: 2026-06-20T06:04:50.740092
+dashboard_badge: published in CLI; dashboard may lag visually
+dashboard_card_version: v0.0.0 shown on card, but CLI versions confirms published version 0.1.12 exists
 ```
 
-The app has been pushed and cut as `0.1.12`, and its Executa binary URLs are pinned to `creatoros-planner-v0.1.2`. Do not release until Anna approval allows it.
+The app has been pushed, cut, and published as `0.1.12`, and its Executa binary URLs are pinned to `creatoros-planner-v0.1.2`. `apps versions` is the authoritative live-version check; on Windows, `apps list/status` may emit valid JSON and then terminate with `UV_HANDLE_CLOSING`, and `apps release` may reject an already-published lower-case `published` status.
 
 ## 15. Secrets And Environment Variables
 

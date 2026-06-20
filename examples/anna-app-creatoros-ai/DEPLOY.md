@@ -261,9 +261,10 @@ Last verified locally:
 - Version `0.1.10` was cut as version id `182` before binary distribution metadata was finalized.
 - Version `0.1.11` was cut as version id `184` with binary distribution active.
 - Version `0.1.12` was cut as version id `202` with Executa `0.1.2` frozen as Executa version id `120`.
+- Version `0.1.12` is the latest published version. `anna-app apps versions creatoros-ai --account https://anna.partners --json` reports `is_latest: true` and `published_at: 2026-06-20T06:04:50.740092`.
 - Local app version `0.1.12` and Executa version `0.1.2` contain the chatbot/UI and session Composio-key fixes.
 - GitHub Actions run `27862055908` built and released `creatoros-planner-v0.1.2` binaries for `darwin-arm64`, `darwin-x86_64`, and `linux-x86_64`.
 - Current Executa: `tool-nikku696969-creatoros-planner-vhsarfsp`, version `0.1.2`, distribution `binary`.
-- Current server status: `pending_review`.
-- `anna-app apps submit-review creatoros-ai --account https://anna.partners --json` is blocked because the app is already `pending_review`.
-- `anna-app apps release 0.1.12 --account https://anna.partners --json` is blocked until Anna approves the app: `app status is pending_review; release not permitted — app must be APPROVED or PUBLISHED to release`.
+- Current server status: `published`.
+- `anna-app apps list --account https://anna.partners --json` reports `creatoros-ai` as `published`.
+- On Windows, `anna-app apps release 0.1.12 --account https://anna.partners --json` can still reject with `app status is published; release not permitted`, even though `apps versions` shows the version is already published. Treat `apps versions` as the authoritative check for the current live version.
