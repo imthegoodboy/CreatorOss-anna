@@ -142,7 +142,6 @@ small {
 }
 
 .icon-button,
-.nav-item,
 .suggestion,
 .platform-chip,
 .mention-option,
@@ -195,20 +194,45 @@ small {
 }
 
 .nav-item {
+  position: relative;
   min-width: 0;
   min-height: 2.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-xs);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  font-weight: 700;
   padding: var(--space-xs);
   white-space: nowrap;
+  transition: color var(--dur-short) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+}
+
+.nav-item::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: 0.65rem;
+  width: 0.1875rem;
+  border-radius: 999px;
+  background: var(--color-action);
+  opacity: 0;
+  transform: scaleY(0.5);
+  transition: opacity var(--dur-short) var(--ease-out), transform var(--dur-short) var(--ease-out);
 }
 
 .nav-item.is-active {
-  background: var(--color-ink);
-  border-color: var(--color-ink);
-  color: var(--color-paper);
+  background: transparent;
+  color: var(--color-ink);
+}
+
+.nav-item.is-active::before {
+  opacity: 1;
+  transform: scaleY(1);
 }
 
 .nav-icon {
@@ -222,8 +246,8 @@ small {
 }
 
 .nav-item.is-active .nav-icon {
-  background: var(--color-ink-2);
-  color: var(--color-paper);
+  background: var(--color-accent-2);
+  color: var(--color-action);
 }
 
 .workspace,
@@ -432,6 +456,12 @@ small {
   font-size: var(--text-sm);
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.suggestion--plain {
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-action);
 }
 
 .platform-chip {
@@ -957,6 +987,11 @@ select {
   .nav-item:hover,
   .upload-dropzone:hover {
     background: var(--color-paper-3);
+  }
+
+  .nav-item:hover {
+    color: var(--color-ink);
+    background: transparent;
   }
 
   .ops-item:hover {

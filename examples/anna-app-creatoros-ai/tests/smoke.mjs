@@ -114,6 +114,7 @@ function send(message) {
   child.stdin.write(`${JSON.stringify(message)}\n`);
 }
 
+send({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2.0" } });
 send({ jsonrpc: "2.0", id: 1, method: "describe" });
 send({
   jsonrpc: "2.0",
@@ -271,7 +272,7 @@ send({
 await new Promise((resolveDone, rejectDone) => {
   const timeout = setTimeout(() => rejectDone(new Error("plugin smoke timed out")), 45000);
   const poll = setInterval(() => {
-    if (responses.length >= 10) {
+    if (responses.length >= 11) {
       clearTimeout(timeout);
       clearInterval(poll);
       resolveDone();
@@ -283,6 +284,7 @@ child.stdin.end();
 child.kill();
 
 const describe = responses.find((response) => response.id === 1)?.result;
+const initialize = responses.find((response) => response.id === 0)?.result;
 const invoke = responses.find((response) => response.id === 2)?.result;
 const integrations = responses.find((response) => response.id === 3)?.result;
 const video = responses.find((response) => response.id === 4)?.result;
@@ -295,6 +297,9 @@ const execute = responses.find((response) => response.id === 10)?.result;
 
 if (describe?.tools?.[0]?.name !== "creatoros_plan") {
   throw new Error("describe did not expose creatoros_plan");
+}
+if (initialize?.protocolVersion !== "2.0" || initialize?.serverInfo?.version !== executaMeta.version) {
+  throw new Error("initialize did not negotiate Executa protocol 2.0");
 }
 if (describe?.version !== executaMeta.version) {
   throw new Error("describe version must match executa.json version");

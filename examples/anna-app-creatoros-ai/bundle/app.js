@@ -18,6 +18,7 @@ const TASK_WAITING_STATUSES = new Set([
   "ready_for_composio_execute",
   "scheduled_waiting",
 ]);
+const ACTIVE_CONNECTION_STATUSES = new Set(["ACTIVE", "ENABLED", "CONNECTED"]);
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -377,16 +378,18 @@ function withTimeout(promise, ms) {
 
 async function updateAgentStatusQuietly() {
   try {
-    appState.agentStatus = await planner("agent_status", {
-      plan: appState.plan,
+    const status = await planner("agent_status", {
+      plan: appState.plan || emptyStatusPlan(),
       uploads: appState.uploads,
       tasks: appState.tasks,
-      connections: appState.connections.channels,
+      connections: activeConnections(),
       approved_ids: appState.approvedIds,
     });
+    if (status?.composio_configured) appState.integrations.composioConfigured = true;
+    appState.agentStatus = workspaceStatus(status);
   } catch (err) {
     console.warn("[creatoros-ai] agent_status unavailable:", err?.message || err);
-    appState.agentStatus = computedStatus();
+    appState.agentStatus = workspaceStatus();
   }
 }
 
@@ -559,10 +562,12 @@ async function refreshMediaConnections(options = {}) {
       user_id: appState.userId,
       platforms: PLATFORMS,
     });
-    appState.connections.channels = Array.isArray(status.accounts)
+    const accounts = Array.isArray(status.accounts)
       ? status.accounts.map(stripSensitiveConnection).filter(Boolean)
       : [];
+    appState.connections.channels = accounts;
     appState.connections.lastListStatus = status.status || "ready";
+    appState.connections.lastListTotal = Number(status.total_items ?? accounts.length);
     if (status.status === "needs_composio_api_key") {
       appState.integrations.composioConfigured = false;
     } else {
@@ -1040,6 +1045,7 @@ function createDefaultState() {
       pendingLinks: [],
       lastConnect: null,
       lastListStatus: "not_checked",
+      lastListTotal: 0,
     },
     agentStatus: null,
     thumbnailBrief: null,
@@ -1192,12 +1198,22 @@ function renderMessages() {
 function renderOpsStrip() {
   const totalItems = appState.plan?.calendar?.length || 0;
   const readyTasks = appState.tasks.filter((task) => task.status === "ready_for_review").length;
-  const composioReady = Boolean(sessionSecrets.composioApiKey || appState.integrations.composioConfigured);
+  const composioReady = Boolean(
+    sessionSecrets.composioApiKey ||
+      appState.integrations.composioConfigured ||
+      appState.agentStatus?.composio_configured,
+  );
+  const channels = channelSummary();
   const items = [
     { label: "Plan", value: totalItems ? `${totalItems} items` : "Not planned", view: "workflow" },
     { label: "Uploads", value: String(appState.uploads.length), view: "uploads" },
     { label: "Tasks", value: appState.tasks.length ? `${readyTasks}/${appState.tasks.length} ready` : "0", view: "workflow" },
-    { label: "Channels", value: String(appState.connections.channels.length), view: "integrations" },
+    {
+      label: "Channels",
+      value: channels.attention ? `${channels.active}/${channels.total} active` : `${channels.active} active`,
+      view: "integrations",
+      tone: channels.active ? "ok" : channels.total ? "warn" : "",
+    },
     { label: "Composio", value: composioReady ? "Ready" : "Add key", view: "integrations", tone: composioReady ? "ok" : "warn" },
   ];
   els.opsStrip.replaceChildren(
@@ -1274,6 +1290,16 @@ function renderIntro(root, message) {
     });
     actions.append(button);
   }
+  const connect = document.createElement("button");
+  connect.type = "button";
+  connect.className = "suggestion suggestion--plain";
+  connect.textContent = "Connect media";
+  connect.addEventListener("click", () => {
+    setActiveView("integrations");
+    render();
+    requestAnimationFrame(() => els.connectMedia.focus());
+  });
+  actions.append(connect);
 
   root.append(h1, p, actions);
 }
@@ -1648,10 +1674,14 @@ function renderConnections() {
   els.connectionList.replaceChildren();
   const rows = [];
   for (const channel of appState.connections.channels) {
+    const active = isActiveConnection(channel);
     rows.push({
       title: `${formatStatus(channel.toolkit || "media")} channel`,
       status: channel.status || "unknown",
-      detail: channel.alias || "Connected account",
+      detail: active
+        ? channel.alias || "Connected account"
+        : `${channel.alias || "Connected account"} needs reconnect before publishing`,
+      active,
     });
   }
   for (const link of appState.connections.pendingLinks) {
@@ -1659,8 +1689,10 @@ function renderConnections() {
       title: `${link.platform || "Media"} auth link`,
       status: link.status || "link_ready",
       detail: link.expires_at ? `Expires ${link.expires_at}` : "Finish authorization in browser",
+      active: false,
     });
   }
+  rows.sort((a, b) => Number(b.active) - Number(a.active));
   if (!rows.length) {
     els.connectionList.append(emptyListItem("No connected media channels yet."));
     return;
@@ -1689,26 +1721,32 @@ function renderAgentStatus() {
 function renderIntegrations() {
   const status = appState.integrations.lastStatus;
   const sessionComposioKey = Boolean(sessionSecrets.composioApiKey);
-  const composio = sessionComposioKey || status?.composio?.configured || appState.integrations.composioConfigured;
+  const composio =
+    sessionComposioKey ||
+    status?.composio?.configured ||
+    appState.integrations.composioConfigured ||
+    appState.agentStatus?.composio_configured;
   const composioProbe = status?.composio?.probe?.status;
   const videoKey = Boolean(sessionSecrets.videoApiKey);
   const endpoint = appState.integrations.videoEndpoint || "";
+  const channels = channelSummary();
   els.composioKey.placeholder = sessionComposioKey ? "Composio key set for this session" : "Paste Composio key for this session";
   if (els.videoEndpoint !== document.activeElement) els.videoEndpoint.value = endpoint;
   els.videoKey.placeholder = videoKey ? "Video key set for this session" : "Paste key for this session";
   const parts = [
     anna ? "Anna connected" : "Standalone preview",
     composio ? `Composio ${composioProbe || "ready"}` : "Composio key needed",
-    `${appState.connections.channels.length} channel${appState.connections.channels.length === 1 ? "" : "s"}`,
+    `${channels.active} active channel${channels.active === 1 ? "" : "s"}`,
+    channels.attention ? `${channels.attention} need reconnect` : "",
     videoKey ? "Video key active" : "Video key not set",
     endpoint ? "Endpoint set" : "No endpoint",
-  ];
+  ].filter(Boolean);
   els.integrationStatus.textContent = parts.join(" · ");
   const entries = [
     ["Anna", anna ? "Connected" : "Standalone preview"],
     ["Composio", composio ? formatStatus(composioProbe || status?.composio?.status || "ready") : "Add session key"],
     ["Composio key", sessionComposioKey ? "Active for session" : status?.composio?.configured ? "Runtime key" : "Not set"],
-    ["Channels", String(appState.connections.channels.length)],
+    ["Channels", channelCountCopy(channels)],
     ["Composio API", composio ? status?.composio?.base_url || "Session key active" : "Add key to check"],
     ["Video key", videoKey ? "Active for session" : "Not set"],
     ["Endpoint", endpoint || "Not set"],
@@ -1770,16 +1808,16 @@ function factList(entries, className) {
 }
 
 function statusFacts(status) {
+  const channels = channelSummary();
   return factList(
     [
       ["Campaign", status.campaign || "No active campaign"],
       ["Plan items", String(status.plan_items || 0)],
       ["Approved", String(status.approved_items || 0)],
       ["Uploads", String(status.uploads || 0)],
-      ["Channels", String(status.connected_channels ?? appState.connections.channels.length)],
+      ["Channels", channelCountCopy({ ...channels, active: status.connected_channels ?? channels.active })],
       ["Tasks", `${status.tasks_waiting || 0} waiting / ${status.tasks_total || 0} total`],
       ["Composio", status.composio_configured ? "Configured" : "Not configured"],
-      ["Channels", String(appState.connections.channels.length)],
     ],
     "status-list",
   );
@@ -1800,18 +1838,83 @@ function platformPills(platforms, extraClass = "") {
 function statusPill(status) {
   const pill = document.createElement("span");
   const ok = status === "ready_for_review" || status === "host_uploaded" || status === "local_ready" || status === "ACTIVE" || status === "active";
-  const warn = status === "needs_composio_api_key" || status === "needs_connected_channel" || status === "needs_auth_config" || status === "needs_time" || status === "link_ready";
+  const warn =
+    status === "needs_composio_api_key" ||
+    status === "needs_connected_channel" ||
+    status === "needs_auth_config" ||
+    status === "needs_time" ||
+    status === "link_ready" ||
+    /expired|disabled|revoked|error/i.test(String(status || ""));
   pill.className = `pill ${ok ? "pill--success" : warn ? "pill--warning" : ""}`.trim();
   pill.textContent = formatStatus(status);
   return pill;
 }
 
 function connectionSummaryCopy() {
-  if (appState.connections.channels.length) {
-    return `${appState.connections.channels.length} connected media channel${appState.connections.channels.length === 1 ? "" : "s"}.`;
+  const channels = channelSummary();
+  if (channels.active) {
+    return `${channels.active} active media channel${channels.active === 1 ? "" : "s"} ready for publishing.`;
+  }
+  if (channels.attention) {
+    return `0 active channels. ${channels.attention} saved account${channels.attention === 1 ? "" : "s"} need reconnect.`;
   }
   if (appState.connections.lastListStatus === "needs_composio_api_key") return "Composio key is required before connecting channels.";
   return "Connect YouTube, Instagram, or TikTok before live publishing.";
+}
+
+function isActiveConnection(connection) {
+  if (!connection) return false;
+  const status = String(connection.status || "").toUpperCase();
+  return !connection.is_disabled && ACTIVE_CONNECTION_STATUSES.has(status);
+}
+
+function activeConnections() {
+  return appState.connections.channels.filter(isActiveConnection);
+}
+
+function inactiveConnections() {
+  return appState.connections.channels.filter((connection) => !isActiveConnection(connection));
+}
+
+function channelSummary() {
+  return {
+    active: activeConnections().length,
+    attention: inactiveConnections().length,
+    total: appState.connections.channels.length,
+  };
+}
+
+function channelCountCopy(summary = channelSummary()) {
+  if (summary.attention) return `${summary.active} active / ${summary.attention} reconnect`;
+  return `${summary.active} active`;
+}
+
+function emptyStatusPlan() {
+  return {
+    strategy: { campaign_name: "No active campaign", platforms: appState.selectedPlatforms },
+    calendar: [],
+  };
+}
+
+function workspaceStatus(status = {}) {
+  const channels = channelSummary();
+  const plan = appState.plan || emptyStatusPlan();
+  return {
+    ...status,
+    campaign: appState.plan ? plan.strategy.campaign_name : "No active campaign",
+    plan_items: appState.plan?.calendar?.length || 0,
+    approved_items: appState.approvedIds.length,
+    uploads: appState.uploads.length,
+    connected_channels: channels.active,
+    channels_need_reconnect: channels.attention,
+    tasks_total: appState.tasks.length,
+    tasks_waiting: appState.tasks.filter((task) => TASK_WAITING_STATUSES.has(task.status)).length,
+    composio_configured: Boolean(
+      sessionSecrets.composioApiKey ||
+        status.composio_configured ||
+        appState.integrations.composioConfigured,
+    ),
+  };
 }
 
 function connectionCopy(connection) {
@@ -2202,15 +2305,7 @@ function inferPublishAt(text) {
 }
 
 function computedStatus() {
-  return {
-    campaign: appState.plan?.strategy?.campaign_name || "No active campaign",
-    plan_items: appState.plan?.calendar?.length || 0,
-    approved_items: appState.approvedIds.length,
-    uploads: appState.uploads.length,
-    tasks_total: appState.tasks.length,
-    tasks_waiting: appState.tasks.filter((task) => TASK_WAITING_STATUSES.has(task.status)).length,
-    composio_configured: appState.integrations.composioConfigured,
-  };
+  return workspaceStatus();
 }
 
 function setConnected(connected) {

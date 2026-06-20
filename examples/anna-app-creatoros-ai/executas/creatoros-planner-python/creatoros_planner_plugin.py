@@ -23,6 +23,7 @@ STATE_DIR = Path(os.path.expanduser("~/.anna/creatoros-ai"))
 STATE_FILE = STATE_DIR / "state.json"
 COMPOSIO_BASE_URL = os.getenv("COMPOSIO_BASE_URL", "https://backend.composio.dev/api/v3.1").rstrip("/")
 VIDEO_REQUEST_TIMEOUT_S = 45
+PROTOCOL_VERSION_V2 = "2.0"
 EXECUTION_WAITING_STATUSES = {
     "ready_for_review",
     "needs_composio_api_key",
@@ -40,7 +41,7 @@ PLATFORM_EXECUTION_TOOLS = {
 
 MANIFEST: dict[str, Any] = {
     "display_name": "CreatorOS Planner",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "description": "Creates and manages creator strategy, uploads, scheduling packets, agent status, and review payloads for CreatorOS AI.",
     "author": "CreatorOS AI",
     "license": "MIT",
@@ -462,21 +463,28 @@ def _list_connected_accounts(api_key: str, toolkit_slugs: list[str] | None = Non
     for item in payload.get("items") or []:
         if not isinstance(item, dict):
             continue
+        toolkit = (item.get("toolkit") or {}).get("slug")
+        status = str(item.get("status") or "").upper()
+        disabled = bool(item.get("is_disabled"))
         accounts.append(
             {
                 "id": item.get("id"),
                 "alias": item.get("alias"),
                 "user_id": item.get("user_id"),
                 "status": item.get("status"),
-                "toolkit": (item.get("toolkit") or {}).get("slug"),
-                "is_disabled": item.get("is_disabled"),
+                "toolkit": toolkit,
+                "is_disabled": disabled,
+                "is_active": bool(toolkit and not disabled and status in {"ACTIVE", "ENABLED", "CONNECTED"}),
                 "created_at": item.get("created_at"),
                 "updated_at": item.get("updated_at"),
             }
         )
+    active_count = sum(1 for account in accounts if account.get("is_active"))
     return {
         "status": "ready",
         "total_items": payload.get("total_items", len(accounts)),
+        "active_items": active_count,
+        "inactive_items": len(accounts) - active_count,
         "accounts": accounts,
     }
 
@@ -1160,10 +1168,25 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
     req_id = request.get("id")
     method = request.get("method")
     params = request.get("params") or {}
+    if method == "initialize":
+        proto = params.get("protocolVersion") or PROTOCOL_VERSION_V2
+        if proto not in ("1.1", PROTOCOL_VERSION_V2):
+            proto = PROTOCOL_VERSION_V2
+        return make_response(
+            req_id,
+            {
+                "protocolVersion": proto,
+                "serverInfo": {"name": MANIFEST["display_name"], "version": MANIFEST["version"]},
+                "client_capabilities": {},
+                "capabilities": {},
+            },
+        )
     if method == "describe":
         return make_response(req_id, MANIFEST)
     if method == "health":
         return make_response(req_id, {"status": "ok", "state_file": str(STATE_FILE)})
+    if method == "shutdown":
+        return make_response(req_id, {"ok": True})
     if method != "invoke":
         return make_response(req_id, error={"code": -32601, "message": f"method not found: {method}"})
 
