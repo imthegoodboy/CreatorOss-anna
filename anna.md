@@ -26,13 +26,13 @@ App path: examples\anna-app-creatoros-ai
 Host: https://anna.partners
 App slug: creatoros-ai
 App id: 75
-Latest app version: 0.1.12
-Latest app version id: 202
-Published at: 2026-06-20T06:04:50.740092
+Latest app version: 0.1.13
+Latest app version id: 257
+Published at: 2026-06-20T16:03:05.330166
 Executa handle: bundled:creatoros-planner
 Real tool id: tool-nikku696969-creatoros-planner-vhsarfsp
-Executa version: 0.1.2
-Binary release: creatoros-planner-v0.1.2
+Executa version: 0.1.3
+Binary release: creatoros-planner-v0.1.3
 Distribution: Binary
 ```
 
@@ -98,7 +98,7 @@ examples/anna-app-creatoros-ai/
       pyproject.toml
       uv.lock
       creatoros_planner_plugin.py
-      package_binary.py
+      package_binary.sh
   tests/
     smoke.mjs
 ```
@@ -186,7 +186,7 @@ Use bundled handles in `manifest.json`:
   "required_executas": [
     {
       "tool_id": "bundled:creatoros-planner",
-      "min_version": "0.1.2",
+      "min_version": "0.1.3",
       "version": "latest"
     }
   ],
@@ -267,7 +267,7 @@ CreatorOS AI uses:
 
 ```text
 Tool ID: tool-nikku696969-creatoros-planner-vhsarfsp
-Release tag: creatoros-planner-v0.1.2
+Release tag: creatoros-planner-v0.1.3
 ```
 
 Expected release assets:
@@ -307,7 +307,7 @@ Local binary packaging:
 
 ```powershell
 cd C:\Users\parth\Desktop\CreatorOS-anna\examples\anna-app-creatoros-ai\executas\creatoros-planner-python
-python package_binary.py
+bash package_binary.sh
 ```
 
 GitHub Actions should build each platform on its native runner. PyInstaller does not reliably cross-compile.
@@ -332,7 +332,7 @@ anna-app apps push --account https://anna.partners --json
 Cut immutable version:
 
 ```powershell
-anna-app apps cut 0.1.12 --account https://anna.partners --json
+anna-app apps cut 0.1.13 --account https://anna.partners --json
 ```
 
 Submit for review when lifecycle allows it:
@@ -351,10 +351,10 @@ anna-app apps versions creatoros-ai --account https://anna.partners --json
 Release only after Anna approval, or when updating an already published app and the platform allows release:
 
 ```powershell
-anna-app apps release 0.1.12 --account https://anna.partners --json
+anna-app apps release 0.1.13 --account https://anna.partners --json
 ```
 
-Current app is already published as `0.1.12`.
+Current app is already published as `0.1.13`.
 
 ## 11. Review-Ready Checklist
 
@@ -426,13 +426,15 @@ Fix:
 
 ### `apps release` rejects an already published app
 
-The CLI/platform may return a contradictory lifecycle message when the app is already published. Check:
+Anna CLI `0.1.30` can return a contradictory lifecycle message because the API returns lowercase `published` while the CLI release guard expects uppercase `PUBLISHED`. Check:
 
 ```powershell
 anna-app apps versions creatoros-ai --account https://anna.partners --json
 ```
 
 If the latest version has `published_at`, the release exists.
+
+For the `0.1.13` CreatorOS release, `apps release` hit this bug before publishing. The same authenticated CLI client API successfully published app version id `257`; `apps versions` is the authoritative confirmation.
 
 ## 13. Fast Start For The Next Anna App
 

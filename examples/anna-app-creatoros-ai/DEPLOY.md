@@ -6,7 +6,7 @@ This app is a schema 2 Anna App with a static UI bundle and one bundled Python E
 
 - Anna CLI on `PATH`.
 - `uv` on `PATH` for the Python Executa.
-- An Anna account session for staging or production: `anna-app login --host https://staging.anna.partners`.
+- An Anna account session for production: `anna-app login --host https://anna.partners --no-browser`.
 - A verified Anna developer account. The server rejects app publish/list/push calls with `403: Verified developer required` until this is enabled.
 - A configured Anna handle if the CLI asks for one: `anna-app account set-handle <handle>`.
 - For hosted production, a Composio project API key stored as a runtime secret named `COMPOSIO_API_KEY`.
@@ -43,11 +43,11 @@ If this fails with `developer handle required` or `403: Verified developer requi
 Use the device login flow:
 
 ```powershell
-anna-app login --host https://staging.anna.partners --no-browser
+anna-app login --host https://anna.partners --no-browser
 anna-app whoami --json
 ```
 
-The account output should show `current` as `https://staging.anna.partners` and include a PAT with app developer scope. If `apps list`, `apps push`, or `apps publish` returns `Verified developer required`, complete developer verification in Anna before retrying.
+The account output should show `current` as `https://anna.partners` and include a PAT with app developer scope. If `apps list`, `apps push`, or `apps publish` returns `Verified developer required`, complete developer verification in Anna before retrying.
 
 ## Runtime Secrets
 
@@ -104,20 +104,22 @@ From the app directory:
 ```powershell
 anna-app whoami --json
 anna-app validate --strict
-anna-app apps push
-anna-app apps publish
-anna-app apps release 0.1.12
+anna-app apps push --account https://anna.partners --json
+anna-app apps cut 0.1.13 --account https://anna.partners --json
+anna-app apps release 0.1.13 --account https://anna.partners --json
 ```
 
 Current production draft identity:
 
 - App slug: `creatoros-ai`
 - App id: `75`
-- Current local target version: `0.1.12`
-- Latest server cut version: `0.1.12`
-- Latest cut version id: `202`
+- Current local target version: `0.1.13`
+- Latest server cut version: `0.1.13`
+- Latest cut version id: `257`
+- Published at: `2026-06-20T16:03:05.330166`
 - Bundled Executa handle: `creatoros-planner`
 - Platform Tool ID: `tool-nikku696969-creatoros-planner-vhsarfsp`
+- Executa version: `0.1.3`
 
 Keep the app manifest on `bundled:creatoros-planner`. The Executa metadata and Python script entry use the real platform Tool ID, `tool-nikku696969-creatoros-planner-vhsarfsp`, so source mode, binary packaging, Agent shims, and Anna publishing all point at the same tool identity.
 
@@ -190,7 +192,7 @@ tool-nikku696969-creatoros-planner-vhsarfsp-linux-x86_64.tar.gz
 Current release tag:
 
 ```text
-https://github.com/imthegoodboy/CreatorOss-anna/releases/tag/creatoros-planner-v0.1.2
+https://github.com/imthegoodboy/CreatorOss-anna/releases/tag/creatoros-planner-v0.1.3
 ```
 
 Each archive contains:
@@ -238,14 +240,18 @@ printf '%s\n' '{"jsonrpc":"2.0","method":"describe","id":1}' \
 
 Last verified locally:
 
-- `npm test` passes for app version `0.1.12`.
+- `npm test` passes for app version `0.1.13`.
 - `anna-app validate --strict` passes.
 - `node --check bundle/app.js` passes.
 - `python -m py_compile executas\creatoros-planner-python\creatoros_planner_plugin.py` passes.
+- `anna-app executa dev --describe` passes and negotiates protocol `2.0`.
+- `anna-app executa dev --health` returns `status: ok`.
 - Anna dev harness responds on `http://localhost:5185/`.
-- Rendered QA verified the chatbot-first UI, status-strip navigation, session Composio key controls, sanitized persisted state, chat `status` response, `@` platform selection, `Connect media`, upload registration, chat-driven scheduling, approved-task execution guards, scheduled-action-first Workflow layout, explicit Composio auth-config status, and mobile snapshot presence.
+- Rendered QA verified the chatbot-first UI, status-strip navigation, runtime/session Composio key controls, sanitized persisted state, chat `status` response, `@` platform selection, `Connect media`, upload registration, chat-driven scheduling, approved-task execution guards, scheduled-action-first Workflow layout, explicit Composio auth-config status, and mobile layout without horizontal overflow.
 - `anna-app apps sync-meta --account https://anna.partners --json` returned the expected production listing copy. On Windows the CLI can still terminate with `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` after doing the server-side work.
-- `anna-app apps push --account https://anna.partners --json` succeeded at revision `11`.
+- `anna-app apps push --account https://anna.partners --json` succeeded at revision `12`.
+- `anna-app apps cut 0.1.13 --account https://anna.partners --json` cut version id `257` and froze Executa version `0.1.3`.
+- `anna-app apps release 0.1.13 --account https://anna.partners --json` hit the Anna CLI `published`/`PUBLISHED` casing bug in CLI `0.1.30`; the same authenticated CLI API helper successfully published version id `257`.
 - Production app id: `75`.
 - Production slug: `creatoros-ai`.
 - Version `0.1.0` was cut as version id `150`.
@@ -258,13 +264,15 @@ Last verified locally:
 - Version `0.1.7` was cut as version id `172`.
 - Version `0.1.8` was cut as version id `176`.
 - Version `0.1.9` was cut as version id `181` before binary distribution was enabled.
+- Version `0.1.12` was published as version id `202`.
+- Version `0.1.13` was published as version id `257` at `2026-06-20T16:03:05.330166`.
 - Version `0.1.10` was cut as version id `182` before binary distribution metadata was finalized.
 - Version `0.1.11` was cut as version id `184` with binary distribution active.
-- Version `0.1.12` was cut as version id `202` with Executa `0.1.2` frozen as Executa version id `120`.
-- Version `0.1.12` is the latest published version. `anna-app apps versions creatoros-ai --account https://anna.partners --json` reports `is_latest: true` and `published_at: 2026-06-20T06:04:50.740092`.
-- Local app version `0.1.12` and Executa version `0.1.2` contain the chatbot/UI and session Composio-key fixes.
-- GitHub Actions run `27862055908` built and released `creatoros-planner-v0.1.2` binaries for `darwin-arm64`, `darwin-x86_64`, and `linux-x86_64`.
-- Current Executa: `tool-nikku696969-creatoros-planner-vhsarfsp`, version `0.1.2`, distribution `binary`.
+- Version `0.1.12` was published as version id `202` with Executa `0.1.2`.
+- Version `0.1.13` is the latest published version. `anna-app apps versions creatoros-ai --account https://anna.partners --json` reports `is_latest: true` and `published_at: 2026-06-20T16:03:05.330166`.
+- Local app version `0.1.13` and Executa version `0.1.3` contain the final UI, protocol handshake, and runtime Composio status fixes.
+- GitHub Actions run `27876196440` built and released `creatoros-planner-v0.1.3` binaries for `darwin-arm64`, `darwin-x86_64`, and `linux-x86_64`.
+- Current Executa: `tool-nikku696969-creatoros-planner-vhsarfsp`, version `0.1.3`, distribution `binary`.
 - Current server status: `published`.
 - `anna-app apps list --account https://anna.partners --json` reports `creatoros-ai` as `published`.
-- On Windows, `anna-app apps release 0.1.12 --account https://anna.partners --json` can still reject with `app status is published; release not permitted`, even though `apps versions` shows the version is already published. Treat `apps versions` as the authoritative check for the current live version.
+- On Windows with Anna CLI `0.1.30`, `anna-app apps release 0.1.13 --account https://anna.partners --json` can reject with `app status is published; release not permitted` because the CLI expects uppercase lifecycle states. Treat `apps versions` as the authoritative check for the current live version.
