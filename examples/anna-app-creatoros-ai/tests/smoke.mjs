@@ -43,6 +43,7 @@ for (const needle of [
   'id="prompt-input"',
   'id="mention-menu"',
   'id="platform-strip"',
+  'id="ops-strip"',
   'id="message-list"',
   'id="nav-chat"',
   'id="view-workflow"',
@@ -53,6 +54,8 @@ for (const needle of [
   'id="agent-status"',
   'id="connect-media-btn"',
   'id="connect-platform-select"',
+  'id="composio-key-input"',
+  'id="save-composio-key-btn"',
   'id="connection-list"',
   'id="video-key-input"',
   'id="integration-check-btn"',
@@ -73,6 +76,7 @@ for (const needle of [
   "anna.chat.append_artifact",
   "integrations_status",
   "connect_channel",
+  "composio_api_key",
   "list_media_connections",
   "upload_asset",
   "schedule_action",
@@ -83,8 +87,8 @@ for (const needle of [
 ]) {
   if (!appJs.includes(needle)) throw new Error(`chat app behavior missing ${needle}`);
 }
-if (!css.includes("macrostructure: Multi-pane workflow chat")) {
-  throw new Error("Hallmark multi-pane chatbot stamp missing");
+if (!css.includes("macrostructure: Workbench")) {
+  throw new Error("Hallmark Workbench chatbot stamp missing");
 }
 
 const pluginDir = resolve(root, "executas/creatoros-planner-python");

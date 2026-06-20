@@ -585,7 +585,7 @@ Push/cut/review for a new version:
 
 ```powershell
 anna-app apps push --account https://anna.partners --json
-anna-app apps cut 0.1.11 --account https://anna.partners --json
+anna-app apps cut 0.1.12 --account https://anna.partners --json
 anna-app apps submit-review creatoros-ai --account https://anna.partners --json
 anna-app apps status creatoros-ai --account https://anna.partners --json
 ```
@@ -593,7 +593,7 @@ anna-app apps status creatoros-ai --account https://anna.partners --json
 Release after approval:
 
 ```powershell
-anna-app apps release 0.1.11 --account https://anna.partners --json
+anna-app apps release 0.1.12 --account https://anna.partners --json
 ```
 
 Current known production state:
@@ -605,14 +605,16 @@ slug: creatoros-ai
 latest_cut_version: 0.1.11
 latest_cut_version_id: 184
 latest_push_revision: 10
-executa_version: 0.1.1
+local_target_version: 0.1.12
+executa_local_version: 0.1.2
+executa_last_published_binary_version: 0.1.1
 executa_distribution: binary
 status: pending_review
 dashboard_badge: WORKING / In review
 dashboard_card_version: v0.0.0 shown on card, but CLI versions confirms cut version 0.1.11 exists
 ```
 
-Do not push/cut another CreatorOS version while the current version is in review unless Anna rejects it or requests changes. A new cut can make review state harder to track.
+The local app is now ahead of the last server cut. Push/cut `0.1.12` only when you intentionally want Anna review to evaluate the updated chatbot UI and session Composio-key fixes. Do not release until Anna approval allows it.
 
 ## 15. Secrets And Environment Variables
 

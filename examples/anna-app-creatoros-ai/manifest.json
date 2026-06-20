@@ -10,12 +10,12 @@
   "required_executas": [
     {
       "tool_id": "bundled:creatoros-planner",
-      "min_version": "0.1.1",
+      "min_version": "0.1.2",
       "version": "latest"
     }
   ],
   "optional_executas": [],
-  "system_prompt_addendum": "The user has CreatorOS AI available. Use it for creator growth planning and social workflow operations: convert goals into reviewable plans, track agent status, accept uploaded media, prepare scheduling/publishing packets, and keep the user in control before publishing-oriented actions. Prefer the bundled creatoros-planner Executa for strategy/calendar/script/caption/upload/scheduling/status/video-job generation. If the UI is useful, summon the main view with open_app_view. Never claim content was published or a video was generated unless the user explicitly approved it and an actual external tool returned success. Publishing uses Composio only when COMPOSIO_API_KEY and connected platform accounts are configured.",
+  "system_prompt_addendum": "The user has CreatorOS AI available. Use it for creator growth planning and social workflow operations: convert goals into reviewable plans, track agent status, accept uploaded media, prepare scheduling/publishing packets, and keep the user in control before publishing-oriented actions. Prefer the bundled creatoros-planner Executa for strategy/calendar/script/caption/upload/scheduling/status/video-job generation. If the UI is useful, summon the main view with open_app_view. Never claim content was published or a video was generated unless the user explicitly approved it and an actual external tool returned success. Publishing uses Composio only when a runtime or session Composio API key and connected platform accounts are configured.",
   "user_message_prefix_template": "[CreatorOS AI] {user_message}",
   "tags": ["creator", "social-media", "planning", "content", "workflow"],
   "ui": {

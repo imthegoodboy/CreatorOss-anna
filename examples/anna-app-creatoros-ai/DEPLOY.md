@@ -9,9 +9,9 @@ This app is a schema 2 Anna App with a static UI bundle and one bundled Python E
 - An Anna account session for staging or production: `anna-app login --host https://staging.anna.partners`.
 - A verified Anna developer account. The server rejects app publish/list/push calls with `403: Verified developer required` until this is enabled.
 - A configured Anna handle if the CLI asks for one: `anna-app account set-handle <handle>`.
-- A Composio project API key stored as a runtime secret named `COMPOSIO_API_KEY`.
+- For hosted production, a Composio project API key stored as a runtime secret named `COMPOSIO_API_KEY`.
 
-Do not commit API keys. The video provider key is entered by the user in the app and is held only for the current app session.
+Do not commit API keys. Users can also paste a Composio API key and a video provider key inside the app; those keys are held only for the current app session and are not persisted.
 
 ## Local Validation
 
@@ -51,7 +51,7 @@ The account output should show `current` as `https://staging.anna.partners` and 
 
 ## Runtime Secrets
 
-Set Composio only in the shell, deployment environment, or Anna secret configuration:
+Set hosted Composio access only in the shell, deployment environment, or Anna secret configuration:
 
 ```powershell
 $env:COMPOSIO_API_KEY = "<your-composio-project-api-key>"
@@ -65,7 +65,7 @@ $env:COMPOSIO_BASE_URL = "https://backend.composio.dev/api/v3.1"
 
 ### Composio Media Channel OAuth
 
-`COMPOSIO_API_KEY` lets the app probe Composio and list connected accounts. To create a real `Connect media` OAuth link, the Composio project must also have auth configs for those toolkits.
+`COMPOSIO_API_KEY` lets the app probe Composio and list connected accounts. Users can also paste a session-only Composio API key in the Integrations view for local/dev testing. To create a real `Connect media` OAuth link, the Composio project must also have auth configs for those toolkits.
 
 Current local runtime state:
 
@@ -106,14 +106,15 @@ anna-app whoami --json
 anna-app validate --strict
 anna-app apps push
 anna-app apps publish
-anna-app apps release 0.1.11
+anna-app apps release 0.1.12
 ```
 
 Current production draft identity:
 
 - App slug: `creatoros-ai`
 - App id: `75`
-- Latest cut version: `0.1.11`
+- Current local target version: `0.1.12`
+- Latest server cut version: `0.1.11`
 - Latest cut version id: `184`
 - Bundled Executa handle: `creatoros-planner`
 - Platform Tool ID: `tool-nikku696969-creatoros-planner-vhsarfsp`
@@ -189,7 +190,7 @@ tool-nikku696969-creatoros-planner-vhsarfsp-linux-x86_64.tar.gz
 Current release tag:
 
 ```text
-https://github.com/imthegoodboy/CreatorOss-anna/releases/tag/creatoros-planner-v0.1.1
+https://github.com/imthegoodboy/CreatorOss-anna/releases/tag/creatoros-planner-v0.1.2
 ```
 
 Each archive contains:
@@ -220,7 +221,7 @@ printf '%s\n' '{"jsonrpc":"2.0","method":"describe","id":1}' \
 - Open the app in Anna.
 - Generate a plan with a prompt such as `Grow my AI education channel with daily shorts @YouTube @TikTok`.
 - Click `Check tools` and confirm Anna is connected.
-- Confirm Composio reports ready after `COMPOSIO_API_KEY` is configured in the runtime.
+- Confirm Composio reports ready after either `COMPOSIO_API_KEY` is configured in the runtime or a session Composio key is pasted in Integrations.
 - Click `Connect media`. If the selected toolkit has no auth config, confirm the app shows the required `COMPOSIO_<PLATFORM>_AUTH_CONFIG_ID` setup message instead of claiming the channel is connected.
 - Create a Composio auth config for each media toolkit you want to test, set the matching env var, restart the Anna dev harness/Agent runtime, and verify `Connect media` opens a Composio auth link.
 - Enter a test video provider key and verify `Video job` returns either a prepared packet or a provider response.
@@ -237,12 +238,12 @@ printf '%s\n' '{"jsonrpc":"2.0","method":"describe","id":1}' \
 
 Last verified locally:
 
-- `npm test` passes.
+- `npm test` passes for app version `0.1.12`.
 - `anna-app validate --strict` passes.
 - `node --check bundle/app.js` passes.
 - `python -m py_compile executas\creatoros-planner-python\creatoros_planner_plugin.py` passes.
-- Anna dev harness responds on `http://localhost:5182/` using `--llm-account https://anna.partners`.
-- Rendered QA verified plan generation, `@` platform selection, `Connect media`, real YouTube auth-link creation, Instagram auth-link creation through the Executa, TikTok custom-auth messaging, upload registration, chat-driven scheduling, approved-task execution guards, scheduled-action-first Workflow layout, settled loading labels, explicit Composio auth-config status, and mobile no-overflow.
+- Anna dev harness responds on `http://localhost:5185/`.
+- Rendered QA verified the chatbot-first UI, status-strip navigation, session Composio key controls, sanitized persisted state, chat `status` response, `@` platform selection, `Connect media`, upload registration, chat-driven scheduling, approved-task execution guards, scheduled-action-first Workflow layout, explicit Composio auth-config status, and mobile snapshot presence.
 - `anna-app apps sync-meta --account https://anna.partners --json` returned the expected production listing copy. On Windows the CLI can still terminate with `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` after doing the server-side work.
 - `anna-app apps push --account https://anna.partners --json` succeeded at revision `10`.
 - Production app id: `75`.
@@ -259,7 +260,8 @@ Last verified locally:
 - Version `0.1.9` was cut as version id `181` before binary distribution was enabled.
 - Version `0.1.10` was cut as version id `182` before binary distribution metadata was finalized.
 - Version `0.1.11` was cut as version id `184` with binary distribution active.
-- Current Executa: `tool-nikku696969-creatoros-planner-vhsarfsp`, version `0.1.1`, distribution `binary`.
+- Local app version `0.1.12` and Executa version `0.1.2` contain the chatbot/UI and session Composio-key fixes. Push/cut this version after review direction is clear.
+- Current Executa: `tool-nikku696969-creatoros-planner-vhsarfsp`, local version `0.1.2`, last published binary version `0.1.1`.
 - Current server status: `pending_review`.
 - `anna-app apps submit-review creatoros-ai --account https://anna.partners --json` is blocked because the app is already `pending_review`.
 - `anna-app apps release 0.1.11 --account https://anna.partners --json` is blocked until Anna approves the app: `app status is pending_review; release not permitted — app must be APPROVED or PUBLISHED to release`.

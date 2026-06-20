@@ -40,7 +40,7 @@ PLATFORM_EXECUTION_TOOLS = {
 
 MANIFEST: dict[str, Any] = {
     "display_name": "CreatorOS Planner",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "Creates and manages creator strategy, uploads, scheduling packets, agent status, and review payloads for CreatorOS AI.",
     "author": "CreatorOS AI",
     "license": "MIT",
@@ -62,6 +62,7 @@ MANIFEST: dict[str, Any] = {
                 {"name": "video_api_key", "type": "string", "description": "User-supplied video provider API key. Never returned in responses.", "required": False},
                 {"name": "video_api_endpoint", "type": "string", "description": "Optional custom video generation endpoint.", "required": False},
                 {"name": "video_api_key_set", "type": "boolean", "description": "Whether the UI currently holds a video API key.", "required": False},
+                {"name": "composio_api_key", "type": "string", "description": "Optional session-only Composio API key. Used when hosted runtime settings do not provide COMPOSIO_API_KEY and never returned in responses.", "required": False},
                 {"name": "probe_composio", "type": "boolean", "description": "When true, call Composio tools API to verify the configured key.", "required": False},
                 {"name": "upload", "type": "object", "description": "Uploaded media metadata for upload/schedule actions.", "required": False},
                 {"name": "uploads", "type": "array", "items": {"type": "object"}, "description": "Known uploaded assets.", "required": False},
@@ -399,6 +400,10 @@ def _platform_slug(platform: str) -> str:
     return normalized.lower()
 
 
+def _composio_api_key(override: str = "") -> str:
+    return (override or "").strip() or os.getenv("COMPOSIO_API_KEY") or ""
+
+
 def _auth_config_env_name(toolkit_slug: str) -> str:
     return f"COMPOSIO_{toolkit_slug.upper()}_AUTH_CONFIG_ID"
 
@@ -407,9 +412,9 @@ def _auth_config_setup_note(toolkit_slug: str) -> str:
     if toolkit_slug == "tiktok":
         return (
             "TikTok requires a custom Composio OAuth auth config for this project. "
-            "Create it with your TikTok client credentials, then set the auth config id in the runtime environment."
+            "Create it with your TikTok client credentials, then add the auth config id to the Anna runtime settings."
         )
-    return "Create a Composio auth config for this toolkit, then set the auth config id in the runtime environment."
+    return "Create a Composio auth config for this toolkit, then add the auth config id to the Anna runtime settings."
 
 
 def _find_auth_config(api_key: str, toolkit_slug: str) -> dict[str, Any] | None:
@@ -573,12 +578,13 @@ def action_integrations_status(
     video_api_endpoint: str = "",
     probe_composio: bool = False,
     user_id: str = "",
+    composio_api_key: str = "",
     **_: Any,
 ) -> dict[str, Any]:
-    composio_key = os.getenv("COMPOSIO_API_KEY") or ""
+    composio_key = _composio_api_key(composio_api_key)
     composio_configured = bool(composio_key)
     composio_probe = _probe_composio(composio_key) if composio_key and probe_composio else None
-    composio_status = composio_probe.get("status") if composio_probe else ("ready" if composio_configured else "missing_COMPOSIO_API_KEY")
+    composio_status = composio_probe.get("status") if composio_probe else ("ready" if composio_configured else "needs_composio_api_key")
     media_connections = (
         _list_connected_accounts(composio_key, ["youtube", "instagram", "tiktok"], user_id=user_id)
         if composio_key and probe_composio
@@ -627,14 +633,15 @@ def action_integrations_status(
 def action_list_media_connections(
     user_id: str = "",
     platforms: list[str] | None = None,
+    composio_api_key: str = "",
     **_: Any,
 ) -> dict[str, Any]:
-    api_key = os.getenv("COMPOSIO_API_KEY") or ""
+    api_key = _composio_api_key(composio_api_key)
     if not api_key:
         return {
             "status": "needs_composio_api_key",
             "accounts": [],
-            "note": "Set COMPOSIO_API_KEY before checking connected media channels.",
+            "note": "Add a session Composio API key before checking connected media channels.",
         }
     slugs = [_platform_slug(platform) for platform in _normalize_platforms(platforms or ["YouTube", "Instagram", "TikTok"])]
     return _list_connected_accounts(api_key, slugs, user_id=user_id)
@@ -644,9 +651,10 @@ def action_connect_channel(
     platform: str = "YouTube",
     user_id: str = "creatoros-user",
     callback_url: str = "",
+    composio_api_key: str = "",
     **_: Any,
 ) -> dict[str, Any]:
-    api_key = os.getenv("COMPOSIO_API_KEY") or ""
+    api_key = _composio_api_key(composio_api_key)
     toolkit_slug = _platform_slug(platform)
     display_platform = _normalize_platforms([platform])[0]
     if not api_key:
@@ -654,7 +662,7 @@ def action_connect_channel(
             "status": "needs_composio_api_key",
             "platform": display_platform,
             "toolkit": toolkit_slug,
-            "note": "Set COMPOSIO_API_KEY before creating media channel auth links.",
+            "note": "Add a session Composio API key before creating media channel auth links.",
         }
 
     auth_config = _find_auth_config(api_key, toolkit_slug)
@@ -768,9 +776,10 @@ def action_schedule_action(
     publish_at: str = "",
     action_type: str = "publish",
     require_review: bool = True,
+    composio_api_key: str = "",
     **_: Any,
 ) -> dict[str, Any]:
-    composio_key = os.getenv("COMPOSIO_API_KEY") or ""
+    composio_key = _composio_api_key(composio_api_key)
     composio_configured = bool(composio_key)
     source = plan or _load_state().get("last_plan") or {}
     chosen_platforms = _normalize_platforms(platforms or upload.get("platforms") if isinstance(upload, dict) else platforms)
@@ -835,7 +844,7 @@ def action_schedule_action(
                 else (
                     f"Connect these channels before execution: {', '.join(missing_toolkits)}."
                     if task_status == "needs_connected_channel"
-                    else "Set COMPOSIO_API_KEY in the runtime environment before Composio execution."
+                    else "Add a Composio API key before Composio execution."
                 )
             ),
         },
@@ -855,6 +864,7 @@ def action_execute_task(
     user_id: str = "creatoros-user",
     approved: bool = False,
     live_execute: bool = False,
+    composio_api_key: str = "",
     **_: Any,
 ) -> dict[str, Any]:
     state = _load_state()
@@ -883,13 +893,13 @@ def action_execute_task(
         }
         return {"status": task["status"], "execution_state": "blocked", "task": task, "note": task["execution"]["note"]}
 
-    composio_key = os.getenv("COMPOSIO_API_KEY") or ""
+    composio_key = _composio_api_key(composio_api_key)
     if not composio_key:
         task["status"] = "needs_composio_api_key"
         task["execution"] = {
             **execution_record,
             "state": "blocked",
-            "note": "Set COMPOSIO_API_KEY in the runtime environment before executing social actions.",
+            "note": "Add a Composio API key before executing social actions.",
         }
         return {"status": task["status"], "execution_state": "blocked", "task": task, "note": task["execution"]["note"]}
 
@@ -1025,9 +1035,11 @@ def action_agent_status(
     tasks: list[dict[str, Any]] | None = None,
     connections: list[dict[str, Any]] | None = None,
     approved_ids: list[str] | None = None,
+    composio_api_key: str = "",
     **_: Any,
 ) -> dict[str, Any]:
     state = _load_state()
+    composio_configured = bool(_composio_api_key(composio_api_key))
     source = plan or state.get("last_plan") or {}
     uploads = uploads if uploads is not None else state.get("uploads", [])
     tasks = tasks if tasks is not None else state.get("tasks", [])
@@ -1042,12 +1054,12 @@ def action_agent_status(
         "connected_channels": len(connections or []),
         "tasks_total": len(tasks or []),
         "tasks_waiting": len(queued),
-        "composio_configured": bool(os.getenv("COMPOSIO_API_KEY")),
+        "composio_configured": composio_configured,
         "video_provider_ready": False,
         "health": {
             "planner": "ready",
             "storage": "ready",
-            "composio": "configured" if os.getenv("COMPOSIO_API_KEY") else "missing_COMPOSIO_API_KEY",
+            "composio": "configured" if composio_configured else "needs_composio_api_key",
             "publishing": "review_gated",
         },
         "queue": [

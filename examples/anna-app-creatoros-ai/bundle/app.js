@@ -36,6 +36,7 @@ const els = {
   selectedUpload: $("#selected-upload"),
   mention: $("#mention-menu"),
   platformStrip: $("#platform-strip"),
+  opsStrip: $("#ops-strip"),
   messages: $("#message-list"),
   reset: $("#reset-demo"),
   reviewSummary: $("#review-summary"),
@@ -52,6 +53,8 @@ const els = {
   connectStatus: $("#connect-status"),
   connectLink: $("#connect-link"),
   connectionList: $("#connection-list"),
+  composioKey: $("#composio-key-input"),
+  saveComposioKey: $("#save-composio-key-btn"),
   videoKey: $("#video-key-input"),
   videoEndpoint: $("#video-endpoint-input"),
   saveConfig: $("#save-config-btn"),
@@ -68,7 +71,7 @@ const els = {
 
 let anna = null;
 let appState = createDefaultState();
-let sessionSecrets = { videoApiKey: "" };
+let sessionSecrets = { composioApiKey: "", videoApiKey: "" };
 let pendingViewReset = false;
 
 document.addEventListener("DOMContentLoaded", init);
@@ -104,6 +107,7 @@ function bindUi() {
   els.prompt.addEventListener("input", onPromptInput);
   els.prompt.addEventListener("keydown", onPromptKeydown);
   els.reset.addEventListener("click", onResetWorkspace);
+  els.saveComposioKey.addEventListener("click", onSaveComposioConfig);
   els.saveConfig.addEventListener("click", onSaveVideoConfig);
   els.checkIntegrations.addEventListener("click", () => refreshIntegrationStatus({ probe: true }));
   els.connectMedia.addEventListener("click", onConnectMedia);
@@ -422,8 +426,9 @@ function onMentionClick(event) {
 
 async function onResetWorkspace() {
   appState = createDefaultState();
-  sessionSecrets = { videoApiKey: "" };
+  sessionSecrets = { composioApiKey: "", videoApiKey: "" };
   els.prompt.value = "";
+  els.composioKey.value = "";
   els.videoKey.value = "";
   els.videoEndpoint.value = "";
   els.fileInput.value = "";
@@ -442,6 +447,22 @@ async function onResetWorkspace() {
   await refreshMediaConnections({ quiet: true });
   await updateAgentStatusQuietly();
   await saveState();
+  render();
+}
+
+async function onSaveComposioConfig() {
+  const key = els.composioKey.value.trim();
+  if (!key) {
+    showToast("Paste a Composio API key first.");
+    return;
+  }
+  sessionSecrets.composioApiKey = key;
+  els.composioKey.value = "";
+  appState.integrations.composioConfigured = true;
+  await refreshIntegrationStatus({ quiet: true, probe: true });
+  await refreshMediaConnections({ quiet: true });
+  await updateAgentStatusQuietly();
+  showToast("Composio key is active for this session.");
   render();
 }
 
@@ -468,7 +489,7 @@ async function refreshIntegrationStatus(options = {}) {
       video_api_endpoint: appState.integrations.videoEndpoint,
       probe_composio: Boolean(options.probe),
     });
-    appState.integrations.lastStatus = status;
+    appState.integrations.lastStatus = sanitizeIntegrations(status);
     appState.integrations.composioConfigured = Boolean(status?.composio?.configured);
     appState.integrations.videoKeySet = Boolean(sessionSecrets.videoApiKey);
     appState.integrations.lastCheckedAt = new Date().toISOString();
@@ -517,6 +538,9 @@ async function onConnectMedia() {
         createdAt: new Date().toISOString(),
       });
       showToast(connectionCopy(result));
+      if (result.status === "needs_composio_api_key") {
+        focusComposioKeySetup();
+      }
     }
     await refreshMediaConnections({ quiet: true });
     await refreshIntegrationStatus({ quiet: true, probe: true });
@@ -535,7 +559,9 @@ async function refreshMediaConnections(options = {}) {
       user_id: appState.userId,
       platforms: PLATFORMS,
     });
-    appState.connections.channels = Array.isArray(status.accounts) ? status.accounts : [];
+    appState.connections.channels = Array.isArray(status.accounts)
+      ? status.accounts.map(stripSensitiveConnection).filter(Boolean)
+      : [];
     appState.connections.lastListStatus = status.status || "ready";
     if (status.status === "needs_composio_api_key") {
       appState.integrations.composioConfigured = false;
@@ -557,14 +583,22 @@ function applyConnectionIntegrationHint(result) {
   }
   appState.integrations.composioConfigured = true;
   const previous = appState.integrations.lastStatus || {};
-  appState.integrations.lastStatus = {
+  appState.integrations.lastStatus = sanitizeIntegrations({
     ...previous,
     composio: {
       ...(previous.composio || {}),
       configured: true,
       status: result.status === "link_error" ? "link_error" : "ready",
     },
-  };
+  });
+}
+
+function focusComposioKeySetup() {
+  setActiveView("integrations");
+  render();
+  requestAnimationFrame(() => {
+    els.composioKey.focus();
+  });
 }
 
 async function refreshAgentStatus(options = {}) {
@@ -919,16 +953,31 @@ async function onSendReview() {
 }
 
 async function planner(action, args) {
+  const nextArgs = { ...(args || {}) };
+  if (sessionSecrets.composioApiKey && usesComposio(action) && !nextArgs.composio_api_key) {
+    nextArgs.composio_api_key = sessionSecrets.composioApiKey;
+  }
   if (anna?.tools?.invoke) {
     const reply = await anna.tools.invoke({
       tool_id: TOOL_ID,
       method: TOOL_METHOD,
-      args: { action, ...args },
+      args: { action, ...nextArgs },
       timeoutMs: 45000,
     });
     return unwrap(reply);
   }
-  return localPlanner(action, args);
+  return localPlanner(action, nextArgs);
+}
+
+function usesComposio(action) {
+  return new Set([
+    "integrations_status",
+    "list_media_connections",
+    "connect_channel",
+    "schedule_action",
+    "execute_task",
+    "agent_status",
+  ]).has(action);
 }
 
 function unwrap(reply) {
@@ -948,6 +997,7 @@ async function loadStoredState() {
     if (!value) return;
     const stored = typeof value === "string" ? JSON.parse(value) : value;
     appState = normalizeState(stored);
+    await saveState();
   } catch (err) {
     console.warn("[creatoros-ai] storage.get failed:", err?.message || err);
   }
@@ -1019,11 +1069,14 @@ function normalizeState(stored) {
   const next = createDefaultState();
   const brand = { ...next.brand, ...(stored?.brand || {}) };
   const selected = sanitizePlatforms(stored?.selectedPlatforms || brand.platforms || next.selectedPlatforms);
-  const messages = Array.isArray(stored?.messages) && stored.messages.length ? stored.messages : [welcomeMessage()];
+  const messages = Array.isArray(stored?.messages) && stored.messages.length
+    ? stored.messages.map(sanitizeMessage).filter(Boolean)
+    : [welcomeMessage()];
   const integrations = {
     ...next.integrations,
-    ...(stored?.integrations || {}),
+    ...sanitizeIntegrations(stored?.integrations || {}),
     videoKeySet: Boolean(sessionSecrets.videoApiKey),
+    composioConfigured: Boolean(sessionSecrets.composioApiKey) || Boolean(stored?.integrations?.composioConfigured),
   };
   if (stored?.plan && !messages.some((message) => message.kind === "plan")) {
     messages.push({
@@ -1047,8 +1100,13 @@ function normalizeState(stored) {
     connections: {
       ...next.connections,
       ...(stored?.connections || {}),
-      channels: Array.isArray(stored?.connections?.channels) ? stored.connections.channels : [],
-      pendingLinks: Array.isArray(stored?.connections?.pendingLinks) ? stored.connections.pendingLinks : [],
+      channels: Array.isArray(stored?.connections?.channels)
+        ? stored.connections.channels.map(stripSensitiveConnection).filter(Boolean)
+        : [],
+      pendingLinks: Array.isArray(stored?.connections?.pendingLinks)
+        ? stored.connections.pendingLinks.map(stripSensitiveConnection).filter(Boolean)
+        : [],
+      lastConnect: stripSensitiveConnection(stored?.connections?.lastConnect),
     },
     integrations,
     messages,
@@ -1059,23 +1117,20 @@ function serializeState(state) {
   return {
     ...state,
     uploads: state.uploads.map(stripEphemeralUpload),
+    integrations: sanitizeIntegrations(state.integrations),
     connections: {
       ...state.connections,
-      pendingLinks: state.connections.pendingLinks.map(stripSensitiveConnection),
+      channels: state.connections.channels.map(stripSensitiveConnection).filter(Boolean),
+      pendingLinks: state.connections.pendingLinks.map(stripSensitiveConnection).filter(Boolean),
       lastConnect: stripSensitiveConnection(state.connections.lastConnect),
     },
-    messages: state.messages.map((message) =>
-      message.upload
-        ? { ...message, upload: stripEphemeralUpload(message.upload) }
-        : message.connection
-          ? { ...message, connection: stripSensitiveConnection(message.connection) }
-          : message,
-    ),
+    messages: state.messages.map(sanitizeMessage).filter(Boolean),
   };
 }
 
 function render() {
   renderNavigation();
+  renderOpsStrip();
   renderPlatformStrip();
   renderSelectedUpload();
   renderMessages();
@@ -1134,6 +1189,37 @@ function renderMessages() {
   });
 }
 
+function renderOpsStrip() {
+  const totalItems = appState.plan?.calendar?.length || 0;
+  const readyTasks = appState.tasks.filter((task) => task.status === "ready_for_review").length;
+  const composioReady = Boolean(sessionSecrets.composioApiKey || appState.integrations.composioConfigured);
+  const items = [
+    { label: "Plan", value: totalItems ? `${totalItems} items` : "Not planned", view: "workflow" },
+    { label: "Uploads", value: String(appState.uploads.length), view: "uploads" },
+    { label: "Tasks", value: appState.tasks.length ? `${readyTasks}/${appState.tasks.length} ready` : "0", view: "workflow" },
+    { label: "Channels", value: String(appState.connections.channels.length), view: "integrations" },
+    { label: "Composio", value: composioReady ? "Ready" : "Add key", view: "integrations", tone: composioReady ? "ok" : "warn" },
+  ];
+  els.opsStrip.replaceChildren(
+    ...items.map((item) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `ops-item ${item.tone ? `ops-item--${item.tone}` : ""}`.trim();
+      button.addEventListener("click", () => {
+        setActiveView(item.view);
+        render();
+      });
+      const label = document.createElement("span");
+      label.className = "ops-item__label";
+      label.textContent = item.label;
+      const value = document.createElement("strong");
+      value.textContent = item.value;
+      button.append(label, value);
+      return button;
+    }),
+  );
+}
+
 function renderMessage(message) {
   const article = document.createElement("article");
   article.className = `message message--${message.role}`;
@@ -1167,7 +1253,7 @@ function renderMessage(message) {
 
 function renderIntro(root, message) {
   const h1 = document.createElement("h1");
-  h1.textContent = "Message CreatorOS.";
+  h1.textContent = "Run the creator workflow from chat.";
   const p = document.createElement("p");
   p.textContent = message.text;
   const actions = document.createElement("div");
@@ -1358,8 +1444,8 @@ function renderConnectionCard(root, connection) {
     [
       ["Status", formatStatus(connection.status)],
       ["Toolkit", connection.toolkit || "Not set"],
-      ["Account", connection.connected_account_id || "Not created"],
-      ["Setup", connection.env_name || connection.auth_config?.id || "Configured"],
+      ["Account", connection.connected_account_id ? "Created" : "Not created"],
+      ["Setup", connection.auth_config?.id ? "Auth config ready" : connection.env_name || "Configured"],
     ],
     "status-list",
   );
@@ -1565,7 +1651,7 @@ function renderConnections() {
     rows.push({
       title: `${formatStatus(channel.toolkit || "media")} channel`,
       status: channel.status || "unknown",
-      detail: channel.alias || channel.id || "Connected account",
+      detail: channel.alias || "Connected account",
     });
   }
   for (const link of appState.connections.pendingLinks) {
@@ -1602,15 +1688,17 @@ function renderAgentStatus() {
 
 function renderIntegrations() {
   const status = appState.integrations.lastStatus;
-  const composio = status?.composio?.configured || appState.integrations.composioConfigured;
+  const sessionComposioKey = Boolean(sessionSecrets.composioApiKey);
+  const composio = sessionComposioKey || status?.composio?.configured || appState.integrations.composioConfigured;
   const composioProbe = status?.composio?.probe?.status;
   const videoKey = Boolean(sessionSecrets.videoApiKey);
   const endpoint = appState.integrations.videoEndpoint || "";
+  els.composioKey.placeholder = sessionComposioKey ? "Composio key set for this session" : "Paste Composio key for this session";
   if (els.videoEndpoint !== document.activeElement) els.videoEndpoint.value = endpoint;
   els.videoKey.placeholder = videoKey ? "Video key set for this session" : "Paste key for this session";
   const parts = [
     anna ? "Anna connected" : "Standalone preview",
-    composio ? `Composio ${composioProbe || "ready"}` : "Composio env missing",
+    composio ? `Composio ${composioProbe || "ready"}` : "Composio key needed",
     `${appState.connections.channels.length} channel${appState.connections.channels.length === 1 ? "" : "s"}`,
     videoKey ? "Video key active" : "Video key not set",
     endpoint ? "Endpoint set" : "No endpoint",
@@ -1618,9 +1706,10 @@ function renderIntegrations() {
   els.integrationStatus.textContent = parts.join(" · ");
   const entries = [
     ["Anna", anna ? "Connected" : "Standalone preview"],
-    ["Composio", composio ? formatStatus(composioProbe || status?.composio?.status || "ready") : "Missing env"],
+    ["Composio", composio ? formatStatus(composioProbe || status?.composio?.status || "ready") : "Add session key"],
+    ["Composio key", sessionComposioKey ? "Active for session" : status?.composio?.configured ? "Runtime key" : "Not set"],
     ["Channels", String(appState.connections.channels.length)],
-    ["Composio API", status?.composio?.base_url || "Not checked"],
+    ["Composio API", composio ? status?.composio?.base_url || "Session key active" : "Add key to check"],
     ["Video key", videoKey ? "Active for session" : "Not set"],
     ["Endpoint", endpoint || "Not set"],
   ];
@@ -1732,7 +1821,7 @@ function connectionCopy(connection) {
     const note = connection.note || `Create a Composio auth config, then set ${connection.env_name}.`;
     return `${connection.platform} needs a Composio auth config. ${note}`;
   }
-  if (connection.status === "needs_composio_api_key") return "Composio API key is missing in the runtime environment.";
+  if (connection.status === "needs_composio_api_key") return "Add a Composio API key in Integrations, then connect the media channel again.";
   if (connection.status === "link_error") return `${connection.platform} auth link failed: ${connection.error || "unknown error"}`;
   return `${connection.platform || "Media"} status: ${formatStatus(connection.status)}`;
 }
@@ -1746,7 +1835,7 @@ function executionCopy(result) {
   if (status === "needs_public_media_url") return result?.note || "A public media URL is required before publishing.";
   if (status === "scheduled_waiting") return result?.note || "The task is queued until its scheduled publish time.";
   if (status === "ready_for_composio_execute") return "The task passed safety checks and is ready for Composio execution.";
-  if (status === "needs_composio_api_key") return "Composio API key is missing in the runtime environment.";
+  if (status === "needs_composio_api_key") return "Add a Composio API key in Integrations before executing publishing actions.";
   return result?.note || `Execution status: ${formatStatus(status)}`;
 }
 
@@ -1888,9 +1977,69 @@ function stripEphemeralUpload(upload) {
   return rest;
 }
 
+function sanitizeMessage(message) {
+  if (!message || typeof message !== "object") return message;
+  let text = message.text;
+  if (/Composio API key is missing in the runtime environment|Set COMPOSIO_API_KEY|Composio env missing/i.test(text || "")) {
+    text = "Add a Composio API key in Integrations, then connect the media channel again.";
+  }
+  const sanitized = { ...message, text };
+  if (sanitized.upload) sanitized.upload = stripEphemeralUpload(sanitized.upload);
+  if (sanitized.connection) sanitized.connection = stripSensitiveConnection(sanitized.connection);
+  return sanitized;
+}
+
+function sanitizeIntegrations(integrations) {
+  const next = { ...(integrations || {}) };
+  if (next.composio) {
+    next.composio = sanitizeComposioStatus(next.composio);
+  }
+  if (next.lastStatus?.composio) {
+    next.lastStatus = {
+      ...next.lastStatus,
+      composio: sanitizeComposioStatus(next.lastStatus.composio),
+    };
+  }
+  return next;
+}
+
+function sanitizeComposioStatus(composio) {
+  return {
+    ...(composio || {}),
+    auth_configs: Array.isArray(composio?.auth_configs)
+      ? composio.auth_configs.map((item) => ({
+          toolkit: item.toolkit,
+          configured: Boolean(item.configured || item.id),
+          status: item.status || null,
+          source: item.source ? "configured" : null,
+        }))
+      : [],
+    connected_accounts: sanitizeConnectedAccounts(composio?.connected_accounts),
+  };
+}
+
+function sanitizeConnectedAccounts(summary) {
+  if (!summary || typeof summary !== "object") return summary;
+  return {
+    ...summary,
+    accounts: Array.isArray(summary.accounts)
+      ? summary.accounts.map(stripSensitiveConnection).filter(Boolean)
+      : [],
+  };
+}
+
 function stripSensitiveConnection(connection) {
   if (!connection) return null;
-  const { redirect_url, link_token, ...rest } = connection;
+  const { redirect_url, link_token, connected_account_id, id, user_id, ...rest } = connection;
+  if (/Set COMPOSIO_API_KEY|runtime environment|env missing/i.test(rest.note || "")) {
+    rest.note = "Add a Composio API key in Integrations, then connect the media channel again.";
+  }
+  if (rest.auth_config && typeof rest.auth_config === "object") {
+    rest.auth_config = {
+      ...rest.auth_config,
+      id: rest.auth_config.id ? "configured" : null,
+    };
+  }
   return rest;
 }
 
@@ -2132,7 +2281,10 @@ function cadenceLabel(value) {
 function formatStatus(value) {
   return String(value || "unknown")
     .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .replace(/\bApi\b/g, "API")
+    .replace(/\bId\b/g, "ID")
+    .replace(/\bUrl\b/g, "URL");
 }
 
 function formatBytes(value) {
@@ -2149,6 +2301,7 @@ function newId(prefix) {
 
 function localPlanner(action, args) {
   if (action === "integrations_status") {
+    const composioConfigured = Boolean(args.composio_api_key);
     return {
       anna: {
         runtime: "Standalone preview",
@@ -2158,10 +2311,12 @@ function localPlanner(action, args) {
         llm: "available through Anna host runtime when connected",
       },
       composio: {
-        configured: false,
-        status: "missing_COMPOSIO_API_KEY",
+        configured: composioConfigured,
+        status: composioConfigured ? "session_key_ready" : "missing_COMPOSIO_API_KEY",
         probe: null,
-        note: "Set COMPOSIO_API_KEY in the Anna runtime environment.",
+        note: composioConfigured
+          ? "Session Composio key is present; open in Anna to create hosted auth links."
+          : "Paste a session Composio key in Integrations before connecting channels.",
         connected_accounts: { status: "not_checked", accounts: [] },
         auth_configs: [],
       },
@@ -2175,9 +2330,9 @@ function localPlanner(action, args) {
   if (action === "connect_channel") return localConnectChannel(args);
   if (action === "list_media_connections") {
     return {
-      status: "needs_composio_api_key",
+      status: args.composio_api_key ? "ready" : "needs_composio_api_key",
       accounts: [],
-      note: "Set COMPOSIO_API_KEY before checking connected media channels.",
+      note: args.composio_api_key ? "No connected accounts found in standalone preview." : "Paste a session Composio key before checking connected media channels.",
     };
   }
   if (action === "upload_asset") return localUploadAsset(args);
@@ -2320,8 +2475,8 @@ function localConnectChannel(args) {
     env_name: `COMPOSIO_${platform.toUpperCase()}_AUTH_CONFIG_ID`,
     note:
       toolkit === "tiktok"
-        ? "TikTok requires a custom Composio OAuth auth config for this project. Create it with your TikTok client credentials, then set the auth config id in the runtime environment."
-        : "Create a Composio auth config for this toolkit, then set the auth config id in the runtime environment.",
+        ? "TikTok requires a custom Composio OAuth auth config for this project. Create it with your TikTok client credentials, then add the auth config id to the Anna runtime settings."
+        : "Create a Composio auth config for this toolkit, then add the auth config id to the Anna runtime settings.",
   };
 }
 
@@ -2338,7 +2493,7 @@ function localAgentStatus(args) {
     connected_channels: connections.length,
     tasks_total: tasks.length,
     tasks_waiting: tasks.filter((task) => TASK_WAITING_STATUSES.has(task.status)).length,
-    composio_configured: false,
+    composio_configured: Boolean(args.composio_api_key),
     next_actions: ["Generate a campaign plan", "Upload source media", "Connect social accounts in Composio"],
   };
 }

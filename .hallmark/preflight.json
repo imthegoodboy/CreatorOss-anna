@@ -1,0 +1,13 @@
+{
+  "date": "2026-06-20",
+  "framework": "Anna static app bundle with vanilla JavaScript",
+  "font_stack": "Aptos/Segoe UI body, Cambria wordmark, Cascadia Mono outlier",
+  "palette": "OKLCH custom properties in examples/anna-app-creatoros-ai/bundle/tokens.css",
+  "motion": "CSS-only motion tokens with reduced-motion support",
+  "spacing": "4pt CSS custom property scale",
+  "preserve": [
+    "Anna app manifest and static bundle structure",
+    "OKLCH token system",
+    "chat-first CreatorOS workflow"
+  ]
+}

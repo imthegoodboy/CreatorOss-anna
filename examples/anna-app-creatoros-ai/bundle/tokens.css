@@ -3,6 +3,7 @@
   --color-paper: oklch(97.2% 0.006 248);
   --color-paper-2: oklch(94.5% 0.009 248);
   --color-paper-3: oklch(90.8% 0.012 248);
+  --color-paper-warm: oklch(96.5% 0.015 82);
   --color-surface: oklch(99% 0.003 248);
   --color-surface-raised: oklch(96.8% 0.006 248);
   --color-ink: oklch(20% 0.018 254);
@@ -17,9 +18,12 @@
   --color-action-soft: oklch(91% 0.038 255);
   --color-focus: oklch(52% 0.150 205);
   --color-success: oklch(49% 0.120 150);
+  --color-success-soft: oklch(91.5% 0.045 150);
   --color-error: oklch(54% 0.168 28);
   --color-warning: oklch(63% 0.138 76);
+  --color-warning-soft: oklch(92.5% 0.045 76);
   --color-shadow: oklch(20% 0.018 254 / 0.10);
+  --color-shadow-strong: oklch(20% 0.018 254 / 0.16);
 
   --font-display: "Aptos", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Aptos", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
@@ -35,6 +39,7 @@
   --space-xl: 2.5rem;
   --space-2xl: 4rem;
   --space-3xl: 6rem;
+  --space-4xl: 9rem;
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -56,4 +61,5 @@
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 10px;
+  --radius-xl: 14px;
 }

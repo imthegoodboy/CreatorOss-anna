@@ -60,6 +60,7 @@
         <section class="workspace" aria-live="polite">
           <section class="view is-active" id="view-chat" data-view-panel="chat" aria-label="CreatorOS chatbot">
             <div class="chat-panel">
+              <div class="ops-strip" id="ops-strip" aria-label="Workspace status"></div>
               <div class="chat-scroll" id="message-list" aria-live="polite"></div>
 
               <form id="chat-form" class="composer" novalidate>
@@ -139,6 +140,18 @@
             <div class="integration-grid">
               <section class="surface">
                 <h2>Media channels</h2>
+                <div class="secret-row">
+                  <label class="field">
+                    <span>Composio API key</span>
+                    <input
+                      id="composio-key-input"
+                      type="password"
+                      autocomplete="new-password"
+                      placeholder="Paste Composio key for this session"
+                    />
+                  </label>
+                  <button class="rail-button" id="save-composio-key-btn" type="button">Use Composio key</button>
+                </div>
                 <div class="connect-row">
                   <label class="field field--inline">
                     <span>Platform</span>
@@ -150,7 +163,7 @@
                   </label>
                   <button class="rail-button rail-button--primary compact-action" id="connect-media-btn" type="button">Connect media</button>
                 </div>
-                <p class="muted" id="connect-status">No channel connection started.</p>
+                <p class="muted" id="connect-status">Choose a platform, then connect the channel.</p>
                 <div class="connect-link" id="connect-link" hidden></div>
                 <ol class="connection-list" id="connection-list"></ol>
               </section>

@@ -1,6 +1,6 @@
 [project]
 name = "tool-nikku696969-creatoros-planner-vhsarfsp"
-version = "0.1.1"
+version = "0.1.2"
 description = "CreatorOS AI planner Executa for Anna App local development"
 requires-python = ">=3.10"
 authors = [{ name = "CreatorOS AI" }]
