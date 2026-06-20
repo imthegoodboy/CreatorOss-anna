@@ -105,18 +105,18 @@ From the app directory:
 anna-app whoami --json
 anna-app validate --strict
 anna-app apps push --account https://anna.partners --json
-anna-app apps cut 0.1.15 --account https://anna.partners --json
-anna-app apps release 0.1.15 --account https://anna.partners --json
+anna-app apps cut 0.1.16 --account https://anna.partners --json
+anna-app apps release 0.1.16 --account https://anna.partners --json
 ```
 
 Current production draft identity:
 
 - App slug: `creatoros-ai`
 - App id: `75`
-- Current local target version: `0.1.15`
-- Latest server cut version: `0.1.15`
-- Latest cut version id: `288`
-- Published at: `2026-06-20T18:41:04.632673`
+- Current local target version: `0.1.16`
+- Latest server cut version: `0.1.16`
+- Latest cut version id: `303`
+- Published at: `2026-06-20T21:06:24.556714`
 - Bundled Executa handle: `creatoros-planner`
 - Platform Tool ID: `tool-nikku696969-creatoros-planner-vhsarfsp`
 - Executa version: `0.1.4`
@@ -248,7 +248,7 @@ printf '%s\n' '{"jsonrpc":"2.0","method":"describe","id":1}' \
 
 Last verified locally:
 
-- `npm test` passes for app version `0.1.15`.
+- `npm test` passes for app version `0.1.16`.
 - `anna-app validate --strict` passes.
 - `node --check bundle/app.js` passes.
 - `python -m py_compile executas\creatoros-planner-python\creatoros_planner_plugin.py` passes.
@@ -257,9 +257,9 @@ Last verified locally:
 - Anna dev harness responds on `http://localhost:5185/`.
 - Rendered QA verified the chatbot-first UI, status-strip navigation, runtime/session Composio key controls, sanitized persisted state, chat `status` response, `@` platform selection, `Connect media`, upload registration, public HTTPS media URL fallback, chat-driven scheduling, approved-task execution guards, scheduled-action-first Workflow layout, explicit Composio auth-config status, and mobile layout without horizontal overflow.
 - `anna-app apps sync-meta --account https://anna.partners --json` returned the expected production listing copy. On Windows the CLI can still terminate with `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` after doing the server-side work.
-- `anna-app apps push --account https://anna.partners --json --skip-executa-publish --executa-id creatoros-planner=tool-nikku696969-creatoros-planner-vhsarfsp` succeeded at revision `14`.
-- `anna-app apps cut 0.1.15 --account https://anna.partners --json` cut version id `288` and froze Executa version `0.1.4`.
-- `anna-app apps release 0.1.15 --account https://anna.partners --json` is blocked by the Anna CLI `published`/`PUBLISHED` casing bug in CLI `0.1.30`; the same authenticated CLI API helper successfully published version id `288`.
+- `anna-app apps push --account https://anna.partners --json --skip-executa-publish --executa-id creatoros-planner=tool-nikku696969-creatoros-planner-vhsarfsp` succeeded at revision `15`.
+- `anna-app apps cut 0.1.16 --account https://anna.partners --json` cut version id `303` and froze Executa version `0.1.4`.
+- The authenticated CLI API helper successfully published version id `303`.
 - Production app id: `75`.
 - Production slug: `creatoros-ai`.
 - Version `0.1.0` was cut as version id `150`.
@@ -276,13 +276,14 @@ Last verified locally:
 - Version `0.1.13` was published as version id `257` at `2026-06-20T16:03:05.330166`.
 - Version `0.1.14` was published as version id `286` at `2026-06-20T18:27:00.438670`.
 - Version `0.1.15` was published as version id `288` at `2026-06-20T18:41:04.632673`.
+- Version `0.1.16` was published as version id `303` at `2026-06-20T21:06:24.556714`.
 - Version `0.1.10` was cut as version id `182` before binary distribution metadata was finalized.
 - Version `0.1.11` was cut as version id `184` with binary distribution active.
 - Version `0.1.12` was published as version id `202` with Executa `0.1.2`.
-- Version `0.1.15` is the latest published version. `anna-app apps versions creatoros-ai --account https://anna.partners --json` reports `is_latest: true` and `published_at: 2026-06-20T18:41:04.632673`.
-- Local app version `0.1.15` and Executa version `0.1.4` contain the final UI, protocol handshake, runtime Composio status fixes, direct LLM grant, binary distribution metadata, and public URL media fallback.
+- Version `0.1.16` is the latest published version. `anna-app apps versions creatoros-ai --account https://anna.partners --json` reports `is_latest: true` and `published_at: 2026-06-20T21:06:24.556714`.
+- Local app version `0.1.16` and Executa version `0.1.4` contain the final UI, protocol handshake, runtime Composio status fixes, direct LLM grant, binary distribution metadata, safe Composio smoke tests, UI polish, and public URL media fallback.
 - GitHub Actions run `27878975145` built and released `creatoros-planner-v0.1.4` binaries for `darwin-arm64`, `darwin-x86_64`, `linux-x86_64`, and `windows-x86_64`.
 - Current Executa: `tool-nikku696969-creatoros-planner-vhsarfsp`, version `0.1.4`, distribution `binary`.
 - Current server status: `published`.
 - `anna-app apps list --account https://anna.partners --json` reports `creatoros-ai` as `published`.
-- On Windows with Anna CLI `0.1.30`, `anna-app apps release 0.1.15 --account https://anna.partners --json` can reject with `app status is published; release not permitted` because the CLI expects uppercase lifecycle states. Treat `apps versions` as the authoritative check for the current live version.
+- On Windows with Anna CLI `0.1.30`, `anna-app apps release 0.1.16 --account https://anna.partners --json` can reject with `app status is published; release not permitted` because the CLI expects uppercase lifecycle states. Treat `apps versions` as the authoritative check for the current live version.

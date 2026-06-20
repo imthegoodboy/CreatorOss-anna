@@ -26,9 +26,9 @@ App path: examples\anna-app-creatoros-ai
 Host: https://anna.partners
 App slug: creatoros-ai
 App id: 75
-Latest app version: 0.1.15
-Latest app version id: 288
-Published at: 2026-06-20T18:41:04.632673
+Latest app version: 0.1.16
+Latest app version id: 303
+Published at: 2026-06-20T21:06:24.556714
 Executa handle: bundled:creatoros-planner
 Real tool id: tool-nikku696969-creatoros-planner-vhsarfsp
 Executa version: 0.1.4
@@ -334,7 +334,7 @@ anna-app apps push --account https://anna.partners --json
 Cut immutable version:
 
 ```powershell
-anna-app apps cut 0.1.15 --account https://anna.partners --json
+anna-app apps cut 0.1.16 --account https://anna.partners --json
 ```
 
 Submit for review when lifecycle allows it:
@@ -353,10 +353,10 @@ anna-app apps versions creatoros-ai --account https://anna.partners --json
 Release only after Anna approval, or when updating an already published app and the platform allows release:
 
 ```powershell
-anna-app apps release 0.1.15 --account https://anna.partners --json
+anna-app apps release 0.1.16 --account https://anna.partners --json
 ```
 
-Current app is already published as `0.1.15`.
+Current app is already published as `0.1.16`.
 
 ## 11. Review-Ready Checklist
 
@@ -437,7 +437,7 @@ anna-app apps versions creatoros-ai --account https://anna.partners --json
 
 If the latest version has `published_at`, the release exists.
 
-For the `0.1.15` CreatorOS release, `apps release` hit this bug before publishing. The same authenticated CLI client API successfully published app version id `288`; `apps versions` is the authoritative confirmation.
+For the `0.1.16` CreatorOS release, the authenticated CLI client API successfully published app version id `303`; `apps versions` is the authoritative confirmation.
 
 ## 13. Fast Start For The Next Anna App
 

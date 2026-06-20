@@ -111,6 +111,7 @@ if (!css.includes("macrostructure: Workbench")) {
 
 const pluginDir = resolve(root, "executas/creatoros-planner-python");
 const smokeUserId = `smoke-user-${Date.now()}`;
+const createExternalLinks = process.env.CREATOROS_SMOKE_CREATE_LINK === "1";
 const child = spawn("uv", ["run", "--project", pluginDir, "python", "creatoros_planner_plugin.py"], {
   cwd: pluginDir,
   stdio: ["pipe", "pipe", "pipe"],
@@ -229,19 +230,21 @@ send({
     },
   },
 });
-send({
-  jsonrpc: "2.0",
-  id: 8,
-  method: "invoke",
-  params: {
-    tool: "creatoros_plan",
-    arguments: {
-      action: "connect_channel",
-      platform: "YouTube",
-      user_id: smokeUserId,
+if (createExternalLinks) {
+  send({
+    jsonrpc: "2.0",
+    id: 8,
+    method: "invoke",
+    params: {
+      tool: "creatoros_plan",
+      arguments: {
+        action: "connect_channel",
+        platform: "YouTube",
+        user_id: smokeUserId,
+      },
     },
-  },
-});
+  });
+}
 send({
   jsonrpc: "2.0",
   id: 9,
@@ -304,8 +307,9 @@ send({
 
 await new Promise((resolveDone, rejectDone) => {
   const timeout = setTimeout(() => rejectDone(new Error("plugin smoke timed out")), 45000);
+  const expectedResponses = createExternalLinks ? 12 : 11;
   const poll = setInterval(() => {
-    if (responses.length >= 12) {
+    if (responses.length >= expectedResponses) {
       clearTimeout(timeout);
       clearInterval(poll);
       resolveDone();
@@ -359,12 +363,14 @@ if (!status?.success || status?.data?.uploads !== 1 || status?.data?.tasks_waiti
 if (status?.data?.connected_channels !== 1 || status?.data?.channels_need_reconnect !== 1) {
   throw new Error("agent status must separate active channels from reconnect-required accounts");
 }
-if (!connect?.success || !["link_ready", "needs_auth_config", "needs_composio_api_key", "link_error"].includes(connect?.data?.status)) {
-  throw new Error("connect channel did not return a valid connection state");
-}
-if (process.env.COMPOSIO_API_KEY && process.env.COMPOSIO_YOUTUBE_AUTH_CONFIG_ID) {
-  if (connect?.data?.status !== "link_ready" || !connect?.data?.redirect_url) {
-    throw new Error("connect channel should return a YouTube auth link when Composio auth config env is set");
+if (createExternalLinks) {
+  if (!connect?.success || !["link_ready", "needs_auth_config", "needs_composio_api_key", "link_error"].includes(connect?.data?.status)) {
+    throw new Error("connect channel did not return a valid connection state");
+  }
+  if (process.env.COMPOSIO_API_KEY && process.env.COMPOSIO_YOUTUBE_AUTH_CONFIG_ID) {
+    if (connect?.data?.status !== "link_ready" || !connect?.data?.redirect_url) {
+      throw new Error("connect channel should return a YouTube auth link when Composio auth config env is set");
+    }
   }
 }
 if (!connections?.success || !Array.isArray(connections?.data?.accounts)) {

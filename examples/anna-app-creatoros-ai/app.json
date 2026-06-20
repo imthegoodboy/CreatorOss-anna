@@ -1,7 +1,7 @@
 {
   "slug": "creatoros-ai",
   "name": "CreatorOS AI",
-  "version": "0.1.15",
+  "version": "0.1.16",
   "tagline": "Chat with an AI creator operator for plans, uploads, channel setup, and approved publishing actions.",
   "description": "CreatorOS AI turns a high-level creator goal into a concrete, reviewable creator workflow for YouTube, Instagram, and setup-ready TikTok. The app provides a ChatGPT-style Anna window where users can plan a sprint, upload media with the plus button, connect media channels through Composio, prepare scheduling packets, execute approved tasks through guarded Composio calls, request agent status, generate thumbnail briefs, and prepare optional video generation packets.\n\nWhat is inside:\n\n- A schema 2 Anna App UI bundle with chat, workflow, uploads, and integrations views.\n- A bundled Python Executa named creatoros-planner for strategy, calendar, captions, scripts, upload registration, channel connection checks, scheduling packets, approved execution guards, status, and video jobs.\n- Anna storage-backed campaign memory for brand voice, selected platforms, uploads, approved content, tasks, and connection state.\n- Anna host APIs for tool invocation, direct LLM notes, storage, uploads, image generation, chat artifact handoff, and safe agent-assisted notes when granted.\n- Composio integration checks for YouTube, Instagram, and TikTok connected accounts. Publishing-oriented actions stay blocked until the selected channel is actually connected and the user approves the task.\n- Human review before any publishing-oriented artifact is sent back to Anna chat or external Composio execution is attempted.",
   "category": "productivity",

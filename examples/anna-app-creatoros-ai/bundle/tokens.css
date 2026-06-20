@@ -14,8 +14,11 @@
   --color-accent: oklch(48% 0.125 205);
   --color-accent-2: oklch(90% 0.040 205);
   --color-accent-ink: oklch(98.5% 0.004 248);
+  --color-accent-rail: oklch(72% 0.115 198 / 0.42);
   --color-action: oklch(44% 0.135 255);
   --color-action-soft: oklch(91% 0.038 255);
+  --color-warm-accent: oklch(67% 0.132 74);
+  --color-warm-soft: oklch(94% 0.035 78);
   --color-focus: oklch(52% 0.150 205);
   --color-success: oklch(49% 0.120 150);
   --color-success-soft: oklch(91.5% 0.045 150);
@@ -24,6 +27,7 @@
   --color-warning-soft: oklch(92.5% 0.045 76);
   --color-shadow: oklch(20% 0.018 254 / 0.10);
   --color-shadow-strong: oklch(20% 0.018 254 / 0.16);
+  --color-shadow-soft: oklch(20% 0.018 254 / 0.06);
 
   --font-display: "Aptos", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Aptos", "Segoe UI", ui-sans-serif, system-ui, sans-serif;

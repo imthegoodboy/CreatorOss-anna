@@ -1,18 +1,60 @@
 > 中文版本请参阅 [README.zh-CN.md](README.zh-CN.md)
 
-# Anna Executa Plugin Examples
+# CreatorOS AI + Anna Executa Examples
 
-This repository provides **complete examples and development documentation** for Anna Executa plugins, covering Python, Node.js, and Go, with both Local and Binary distribution methods.
+This repository contains **CreatorOS AI**, a production-ready Anna App for creator workflow automation, plus reusable Anna Executa examples in Python, Node.js, and Go.
+
+## Featured App: CreatorOS AI
+
+CreatorOS AI is a chatbot-style Anna App that helps creators plan, review, and prepare publishing workflows across YouTube, Instagram, and setup-ready TikTok.
+
+The app lets a user:
+
+- Chat with an AI creator operator to turn a goal into a content sprint.
+- Select target media channels with `@YouTube`, `@Instagram`, and `@TikTok`.
+- Upload local media or attach a public HTTPS media URL for publishing checks.
+- Connect media accounts through Composio OAuth links.
+- Generate scripts, captions, review packets, thumbnail briefs, and video-job briefs.
+- Track agent status from chat.
+- Keep publishing actions human-approved and blocked until a real connected channel exists.
+
+Current Anna production release:
+
+```text
+App slug: creatoros-ai
+App version: 0.1.16
+Anna app id: 75
+Latest version id: 303
+Executa tool: tool-nikku696969-creatoros-planner-vhsarfsp
+Executa version: 0.1.4
+Distribution: binary
+```
+
+Run it locally:
+
+```powershell
+cd examples\anna-app-creatoros-ai
+npm test
+anna-app validate --strict
+anna-app dev --port 5185 --llm-account https://anna.partners
+```
+
+Project docs:
+
+- [CreatorOS AI README](examples/anna-app-creatoros-ai/README.md)
+- [CreatorOS AI deployment guide](examples/anna-app-creatoros-ai/DEPLOY.md)
+- [Anna app developer playbook](anna.md)
 
 ## What is Executa?
 
-Executa is the plugin extension system for Anna Agent. Developers can write tools in **any programming language** — as long as they implement the standard **JSON-RPC 2.0 over stdio** protocol, Anna will automatically discover, load, and expose them to the LLM.
+Executa is the plugin extension system for Anna Agent. Developers can write tools in **any programming language** as long as they implement the standard **JSON-RPC 2.0 over stdio** protocol. Anna can then discover, load, and expose those tools to the host LLM.
 
 ## Directory Structure
 
 ```
 anna-executa-examples/
 ├── examples/
+│   ├── anna-app-creatoros-ai/           # ⭐ CreatorOS AI — chatbot UI + bundled Python Executa
 │   ├── python/                          # Python plugin examples (each in its own subdir)
 │   │   ├── basic-tool/                  # Basic plugin (text processing)
 │   │   ├── credential-tool/             # Credential plugin (Weather API Key)
@@ -35,11 +77,11 @@ anna-executa-examples/
 │   │   └── Makefile
 │   ├── multifile-binary/                # Multi-file Binary distribution examples
 │   │   └── python-pyinstaller-onedir/   # PyInstaller --onedir + manifest.json
-│   └── anna-app-focus-flow/             # ⭐ Complete Anna App — UI bundle + skill + tool plugin
+│   └── anna-app-focus-flow/             # Complete Anna App — UI bundle + skill + tool plugin
 │                                        #     The tool plugin ships in three flavours:
 │                                        #     focus-session-{python,node,go}; pick one via
 │                                        #     `executa.json` or `--executa` CLI flag.
-│   └── anna-app-visual-brand/           # ⭐ Anna App — host LLM image generate/edit + APS persistence
+│   └── anna-app-visual-brand/           # Anna App — host LLM image generate/edit + APS persistence
 ├── sdk/                                 # Reference SDKs used by the sampling examples
 │   ├── python/                          # executa_sdk
 │   ├── nodejs/                          # @anna/executa-sdk
@@ -51,6 +93,17 @@ anna-executa-examples/
 ```
 
 ## Quick Start
+
+### CreatorOS AI
+
+```bash
+cd examples/anna-app-creatoros-ai
+npm test
+anna-app validate --strict
+anna-app dev --port 5185 --llm-account https://anna.partners
+```
+
+Use the app by opening the dev harness URL, sending a prompt like `Plan a 7 day AI education sprint @YouTube @Instagram`, then reviewing the generated workflow. Composio publishing stays blocked until a media channel is actually connected and the user approves the task.
 
 ### Run any plugin locally — `anna-app executa dev`
 
@@ -210,6 +263,7 @@ python examples/python/storage-notebook/storage_notebook.py
 - [Reverse Sampling](https://anna.partners/developers/reference/executa-sampling) — Plugins requesting LLM completions from the host
 - [Persistent Storage](https://anna.partners/developers/reference/executa-persistent-storage) — Per-user / per-app KV + object storage hosted by Anna
 - [Common Pitfalls](https://anna.partners/developers/reference/executa-pitfalls) — Read this first when a plugin shows as "Stopped"
+- [CreatorOS AI](examples/anna-app-creatoros-ai/README.md) — End-to-end creator workflow Anna App with chat UI, Composio integration, media upload fallback, review gates, and binary Executa distribution
 - [Anna App Example — Focus Flow](examples/anna-app-focus-flow/README.md) — End-to-end Anna App: 1 tool + 1 skill + premium UI bundle + full app manifest
 
 ## License
