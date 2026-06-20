@@ -114,8 +114,8 @@ Current production draft identity:
 - App slug: `creatoros-ai`
 - App id: `75`
 - Current local target version: `0.1.12`
-- Latest server cut version: `0.1.11`
-- Latest cut version id: `184`
+- Latest server cut version: `0.1.12`
+- Latest cut version id: `202`
 - Bundled Executa handle: `creatoros-planner`
 - Platform Tool ID: `tool-nikku696969-creatoros-planner-vhsarfsp`
 
@@ -245,7 +245,7 @@ Last verified locally:
 - Anna dev harness responds on `http://localhost:5185/`.
 - Rendered QA verified the chatbot-first UI, status-strip navigation, session Composio key controls, sanitized persisted state, chat `status` response, `@` platform selection, `Connect media`, upload registration, chat-driven scheduling, approved-task execution guards, scheduled-action-first Workflow layout, explicit Composio auth-config status, and mobile snapshot presence.
 - `anna-app apps sync-meta --account https://anna.partners --json` returned the expected production listing copy. On Windows the CLI can still terminate with `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` after doing the server-side work.
-- `anna-app apps push --account https://anna.partners --json` succeeded at revision `10`.
+- `anna-app apps push --account https://anna.partners --json` succeeded at revision `11`.
 - Production app id: `75`.
 - Production slug: `creatoros-ai`.
 - Version `0.1.0` was cut as version id `150`.
@@ -260,9 +260,10 @@ Last verified locally:
 - Version `0.1.9` was cut as version id `181` before binary distribution was enabled.
 - Version `0.1.10` was cut as version id `182` before binary distribution metadata was finalized.
 - Version `0.1.11` was cut as version id `184` with binary distribution active.
+- Version `0.1.12` was cut as version id `202` with Executa `0.1.2` frozen as Executa version id `120`.
 - Local app version `0.1.12` and Executa version `0.1.2` contain the chatbot/UI and session Composio-key fixes.
 - GitHub Actions run `27862055908` built and released `creatoros-planner-v0.1.2` binaries for `darwin-arm64`, `darwin-x86_64`, and `linux-x86_64`.
 - Current Executa: `tool-nikku696969-creatoros-planner-vhsarfsp`, version `0.1.2`, distribution `binary`.
 - Current server status: `pending_review`.
 - `anna-app apps submit-review creatoros-ai --account https://anna.partners --json` is blocked because the app is already `pending_review`.
-- `anna-app apps release 0.1.11 --account https://anna.partners --json` is blocked until Anna approves the app: `app status is pending_review; release not permitted — app must be APPROVED or PUBLISHED to release`.
+- `anna-app apps release 0.1.12 --account https://anna.partners --json` is blocked until Anna approves the app: `app status is pending_review; release not permitted — app must be APPROVED or PUBLISHED to release`.

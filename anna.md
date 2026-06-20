@@ -602,19 +602,19 @@ Current known production state:
 host: https://anna.partners
 app_id: 75
 slug: creatoros-ai
-latest_cut_version: 0.1.11
-latest_cut_version_id: 184
-latest_push_revision: 10
+latest_cut_version: 0.1.12
+latest_cut_version_id: 202
+latest_push_revision: 11
 local_target_version: 0.1.12
 executa_local_version: 0.1.2
 executa_binary_release: creatoros-planner-v0.1.2
 executa_distribution: binary
 status: pending_review
 dashboard_badge: WORKING / In review
-dashboard_card_version: v0.0.0 shown on card, but CLI versions confirms cut version 0.1.11 exists
+dashboard_card_version: v0.0.0 shown on card, but CLI status confirms cut version 0.1.12 exists
 ```
 
-The local app is now ahead of the last server cut, and its Executa binary URLs are pinned to `creatoros-planner-v0.1.2`. Push/cut `0.1.12` when you intentionally want Anna review to evaluate the updated chatbot UI and session Composio-key fixes. Do not release until Anna approval allows it.
+The app has been pushed and cut as `0.1.12`, and its Executa binary URLs are pinned to `creatoros-planner-v0.1.2`. Do not release until Anna approval allows it.
 
 ## 15. Secrets And Environment Variables
 
