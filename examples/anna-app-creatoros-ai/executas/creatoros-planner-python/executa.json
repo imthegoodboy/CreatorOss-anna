@@ -20,23 +20,23 @@
         "supports_protocol": true,
         "binary_urls": {
           "darwin-arm64": {
-            "url": "https://github.com/imthegoodboy/CreatorOss-anna/releases/download/creatoros-planner-v0.1.1/tool-nikku696969-creatoros-planner-vhsarfsp-darwin-arm64.tar.gz",
-            "sha256": "8dd4ba451bf6a5c1e3826fc830cafc7c576a3c4b9fe5529a552b1101155e038b",
-            "size": 7812702,
+            "url": "https://github.com/imthegoodboy/CreatorOss-anna/releases/download/creatoros-planner-v0.1.2/tool-nikku696969-creatoros-planner-vhsarfsp-darwin-arm64.tar.gz",
+            "sha256": "d530d61480785507959731045e00f5cf0cc3ff3e9d18f343954ee5e6ff4ad6e1",
+            "size": 7812213,
             "entrypoint": "bin/tool-nikku696969-creatoros-planner-vhsarfsp",
             "format": "tar.gz"
           },
           "darwin-x86_64": {
-            "url": "https://github.com/imthegoodboy/CreatorOss-anna/releases/download/creatoros-planner-v0.1.1/tool-nikku696969-creatoros-planner-vhsarfsp-darwin-x86_64.tar.gz",
-            "sha256": "26a9ee2aaf3430de58fe1ff83dc0f3e1281d8e23a6985063f5901206e93ffeec",
-            "size": 8367782,
+            "url": "https://github.com/imthegoodboy/CreatorOss-anna/releases/download/creatoros-planner-v0.1.2/tool-nikku696969-creatoros-planner-vhsarfsp-darwin-x86_64.tar.gz",
+            "sha256": "9266f6a7685f83a651d9d51e8138a4fb237676c57eb7a1b0ac921136a08c5b4c",
+            "size": 8366190,
             "entrypoint": "bin/tool-nikku696969-creatoros-planner-vhsarfsp",
             "format": "tar.gz"
           },
           "linux-x86_64": {
-            "url": "https://github.com/imthegoodboy/CreatorOss-anna/releases/download/creatoros-planner-v0.1.1/tool-nikku696969-creatoros-planner-vhsarfsp-linux-x86_64.tar.gz",
-            "sha256": "54a0df25e68069e4e9be30a7af150c486f32f2cff3c3197160a034766138ad47",
-            "size": 20381000,
+            "url": "https://github.com/imthegoodboy/CreatorOss-anna/releases/download/creatoros-planner-v0.1.2/tool-nikku696969-creatoros-planner-vhsarfsp-linux-x86_64.tar.gz",
+            "sha256": "bdfa9214d1c490c483af1d60f6ecba55454cd2d1520d87e85db659301ef3e6e1",
+            "size": 20383081,
             "entrypoint": "bin/tool-nikku696969-creatoros-planner-vhsarfsp",
             "format": "tar.gz"
           }

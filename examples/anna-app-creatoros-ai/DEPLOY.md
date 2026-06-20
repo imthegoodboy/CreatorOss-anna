@@ -260,8 +260,9 @@ Last verified locally:
 - Version `0.1.9` was cut as version id `181` before binary distribution was enabled.
 - Version `0.1.10` was cut as version id `182` before binary distribution metadata was finalized.
 - Version `0.1.11` was cut as version id `184` with binary distribution active.
-- Local app version `0.1.12` and Executa version `0.1.2` contain the chatbot/UI and session Composio-key fixes. Push/cut this version after review direction is clear.
-- Current Executa: `tool-nikku696969-creatoros-planner-vhsarfsp`, local version `0.1.2`, last published binary version `0.1.1`.
+- Local app version `0.1.12` and Executa version `0.1.2` contain the chatbot/UI and session Composio-key fixes.
+- GitHub Actions run `27862055908` built and released `creatoros-planner-v0.1.2` binaries for `darwin-arm64`, `darwin-x86_64`, and `linux-x86_64`.
+- Current Executa: `tool-nikku696969-creatoros-planner-vhsarfsp`, version `0.1.2`, distribution `binary`.
 - Current server status: `pending_review`.
 - `anna-app apps submit-review creatoros-ai --account https://anna.partners --json` is blocked because the app is already `pending_review`.
 - `anna-app apps release 0.1.11 --account https://anna.partners --json` is blocked until Anna approves the app: `app status is pending_review; release not permitted — app must be APPROVED or PUBLISHED to release`.
