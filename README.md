@@ -1,271 +1,137 @@
-> 中文版本请参阅 [README.zh-CN.md](README.zh-CN.md)
+# CreatorOS AI
 
-# CreatorOS AI + Anna Executa Examples
+CreatorOS AI is a production-ready Anna App that acts like a creator operations chatbot. A user can describe a growth goal, select target platforms with `@` mentions, upload or attach media, connect social channels, prepare publishing tasks, and ask the agent for workflow status.
 
-This repository contains **CreatorOS AI**, a production-ready Anna App for creator workflow automation, plus reusable Anna Executa examples in Python, Node.js, and Go.
+The app is intentionally review-gated: it prepares plans, captions, scripts, media packets, thumbnail briefs, and video-job briefs, but it does not claim publishing or video generation success unless the user approves the task and the external provider returns success.
 
-## Featured App: CreatorOS AI
+## What It Does
 
-CreatorOS AI is a chatbot-style Anna App that helps creators plan, review, and prepare publishing workflows across YouTube, Instagram, and setup-ready TikTok.
+- Turns a creator goal into a multi-day content sprint.
+- Supports YouTube, Instagram, and setup-ready TikTok workflows.
+- Provides a ChatGPT-style Anna UI with separate Chat, Workflow, Uploads, and Integrations views.
+- Lets users select platforms through `@YouTube`, `@Instagram`, and `@TikTok`.
+- Registers local uploads through Anna host upload APIs when available.
+- Allows a public HTTPS media URL fallback when host upload is not available.
+- Creates Composio OAuth links for connected media accounts.
+- Tracks active and expired/reconnect-needed channel state.
+- Uses Anna storage for workflow memory.
+- Uses Anna host LLM and agent APIs for short operator notes when granted.
+- Keeps final publishing and external execution behind explicit user approval.
 
-The app lets a user:
+## Architecture
 
-- Chat with an AI creator operator to turn a goal into a content sprint.
-- Select target media channels with `@YouTube`, `@Instagram`, and `@TikTok`.
-- Upload local media or attach a public HTTPS media URL for publishing checks.
-- Connect media accounts through Composio OAuth links.
-- Generate scripts, captions, review packets, thumbnail briefs, and video-job briefs.
-- Track agent status from chat.
-- Keep publishing actions human-approved and blocked until a real connected channel exists.
+```text
+Anna App UI
+  -> Anna App Runtime
+  -> tools.invoke(required:bundled:creatoros-planner)
+  -> Python Executa over stdio JSON-RPC
+  -> Anna storage / files / upload APIs
+  -> Composio for social account connection and guarded execution
+  -> Optional user-supplied video provider endpoint
+```
 
-Current Anna production release:
+Key files:
+
+- `app.json` - Anna listing metadata.
+- `manifest.json` - schema 2 Anna App contract, host API grants, and bundled Executa declaration.
+- `bundle/index.html` - static UI shell.
+- `bundle/style.css` and `bundle/tokens.css` - Hallmark-stamped production UI system.
+- `bundle/app.js` - chatbot workflow, Anna runtime calls, storage, upload handling, and UI state.
+- `executas/creatoros-planner-python/creatoros_planner_plugin.py` - bundled Python Executa.
+- `tests/smoke.mjs` - manifest, UI contract, and Executa protocol smoke test.
+- `DEPLOY.md` - release and verification runbook.
+
+## Current Release
 
 ```text
 App slug: creatoros-ai
 App version: 0.1.16
 Anna app id: 75
 Latest version id: 303
-Executa tool: tool-nikku696969-creatoros-planner-vhsarfsp
+Published at: 2026-06-20T21:06:24.556714
+Tool id: tool-nikku696969-creatoros-planner-vhsarfsp
 Executa version: 0.1.4
 Distribution: binary
 ```
 
-Run it locally:
+The Executa binary release is available as `creatoros-planner-v0.1.4` with artifacts for:
+
+- `darwin-arm64`
+- `darwin-x86_64`
+- `linux-x86_64`
+- `windows-x86_64`
+
+## Local Development
 
 ```powershell
-cd examples\anna-app-creatoros-ai
+cd C:\Users\parth\Desktop\CreatorOS-anna\examples\anna-app-creatoros-ai
 npm test
 anna-app validate --strict
 anna-app dev --port 5185 --llm-account https://anna.partners
 ```
 
-Project docs:
+Open the dev harness URL and try:
 
-- [CreatorOS AI README](examples/anna-app-creatoros-ai/README.md)
-- [CreatorOS AI deployment guide](examples/anna-app-creatoros-ai/DEPLOY.md)
-- [Anna app developer playbook](anna.md)
-
-## What is Executa?
-
-Executa is the plugin extension system for Anna Agent. Developers can write tools in **any programming language** as long as they implement the standard **JSON-RPC 2.0 over stdio** protocol. Anna can then discover, load, and expose those tools to the host LLM.
-
-## Directory Structure
-
-```
-anna-executa-examples/
-├── examples/
-│   ├── anna-app-creatoros-ai/           # ⭐ CreatorOS AI — chatbot UI + bundled Python Executa
-│   ├── python/                          # Python plugin examples (each in its own subdir)
-│   │   ├── basic-tool/                  # Basic plugin (text processing)
-│   │   ├── credential-tool/             # Credential plugin (Weather API Key)
-│   │   ├── google-oauth-tool/           # Google OAuth plugin (Gmail)
-│   │   ├── sampling-summarizer/         # Sampling plugin v2 (reverse sampling/createMessage)
-│   │   ├── storage-notebook/            # Persistent Storage plugin v2 (reverse storage/* + files/*)
-│   │   └── build_binary.sh              # Builds all examples (or one) via PyInstaller
-│   ├── nodejs/                          # Node.js plugin examples
-│   │   ├── example_plugin.js            # Basic plugin (JSON/Base64/Hash)
-│   │   ├── credential_plugin.js         # Credential plugin (GitHub API Key)
-│   │   ├── google_oauth_plugin.js       # Google OAuth plugin (Calendar)
-│   │   ├── sampling-tool.js             # Sampling plugin v2
-│   │   └── build_binary.sh
-│   ├── go/                              # Go plugin examples
-│   │   ├── main.go                      # Basic plugin (system info / hash)
-│   │   ├── credential_plugin.go         # Credential plugin (Notion API Key)
-│   │   ├── google_oauth_plugin.go       # Google OAuth plugin (Drive)
-│   │   ├── sampling-tool/               # Sampling plugin v2 (separate go.mod)
-│   │   ├── build.sh
-│   │   └── Makefile
-│   ├── multifile-binary/                # Multi-file Binary distribution examples
-│   │   └── python-pyinstaller-onedir/   # PyInstaller --onedir + manifest.json
-│   └── anna-app-focus-flow/             # Complete Anna App — UI bundle + skill + tool plugin
-│                                        #     The tool plugin ships in three flavours:
-│                                        #     focus-session-{python,node,go}; pick one via
-│                                        #     `executa.json` or `--executa` CLI flag.
-│   └── anna-app-visual-brand/           # Anna App — host LLM image generate/edit + APS persistence
-├── sdk/                                 # Reference SDKs used by the sampling examples
-│   ├── python/                          # executa_sdk
-│   ├── nodejs/                          # @anna/executa-sdk
-│   └── go/                              # github.com/anna/executa-sdk
-└── .github/
-    └── workflows/
-        ├── build-release.yml            # Multi-platform CI/CD example
-        └── anna-app.yml                 # Anna App packaging workflow
+```text
+Plan a 7 day AI education sprint @YouTube @Instagram
 ```
 
-## Quick Start
+Then use:
 
-### CreatorOS AI
+- `Status` in chat to inspect agent state.
+- `Uploads` to add a local file or public HTTPS media URL.
+- `Integrations` to check Composio and connect a media channel.
+- `Workflow` to review scheduled actions and approval gates.
 
-```bash
-cd examples/anna-app-creatoros-ai
+## Runtime Configuration
+
+For real Composio checks and connection links, set runtime environment variables outside git:
+
+```powershell
+$env:COMPOSIO_API_KEY = "<composio-project-api-key>"
+$env:COMPOSIO_YOUTUBE_AUTH_CONFIG_ID = "<youtube-auth-config-id>"
+$env:COMPOSIO_INSTAGRAM_AUTH_CONFIG_ID = "<instagram-auth-config-id>"
+```
+
+TikTok requires a custom Composio OAuth auth config:
+
+```powershell
+$env:COMPOSIO_TIKTOK_AUTH_CONFIG_ID = "<tiktok-auth-config-id>"
+```
+
+Users can also paste a session-only Composio key in the Integrations page. Session keys and video provider keys are kept in memory for the current app session and are not committed or persisted by this app.
+
+## Safety Model
+
+- Publishing-oriented actions require explicit user approval.
+- A task cannot execute live until a matching platform account is active.
+- Media must be provider-accessible before live execution; otherwise the app requests a public HTTPS URL.
+- Video generation only submits to public HTTPS endpoints.
+- Local/private/reserved video endpoints are blocked by the Executa.
+- The app returns setup-needed states instead of pretending an integration succeeded.
+
+## Validation
+
+Core checks:
+
+```powershell
 npm test
 anna-app validate --strict
-anna-app dev --port 5185 --llm-account https://anna.partners
+node --check bundle\app.js
+python -m py_compile executas\creatoros-planner-python\creatoros_planner_plugin.py
+anna-app executa dev --describe --json
+anna-app executa dev --health --json
 ```
 
-Use the app by opening the dev harness URL, sending a prompt like `Plan a 7 day AI education sprint @YouTube @Instagram`, then reviewing the generated workflow. Composio publishing stays blocked until a media channel is actually connected and the user approves the task.
+Rendered QA should cover:
 
-### Run any plugin locally — `anna-app executa dev`
+- App loads inside the Anna dev harness.
+- Chat prompt, `@` platform selection, and status prompt work.
+- Integrations page reports Composio readiness accurately.
+- Connect media returns an auth link when auth config exists.
+- Uploads page accepts a public HTTPS media URL without requiring a local file first.
+- Desktop and mobile layouts have no horizontal overflow.
 
-The [`anna-app-cli`](https://www.npmjs.com/package/@anna-ai/app-cli) ships a
-standalone runner that boots one Executa plugin in isolation — the
-same way `anna-app dev` boots a full Anna App. No matrix-nexus, no
-dashboard, no UI bundle required.
+## Deployment
 
-```bash
-cd examples/python/basic-tool
-anna-app executa dev                        # interactive REPL
-anna-app executa dev --describe             # one-shot: print MANIFEST
-anna-app executa dev --invoke greet --args '{"name":"Ada"}'
-```
-
-It auto-detects the launcher from `executa.json` / `pyproject.toml` /
-`package.json` / `go.mod` / `bin/`, performs the full `initialize`
-handshake, and can either mock or relay reverse `sampling/createMessage`
-calls. See the [`anna-app` CLI reference](https://anna.partners/developers/reference/cli) for
-the full reference.
-
-### Python Plugin
-
-Each Python example is a self-contained subdirectory with its own `pyproject.toml` and PyInstaller spec.
-
-```bash
-cd examples/python/basic-tool
-
-# Run directly
-python example_plugin.py
-
-# Test the protocol
-echo '{"jsonrpc":"2.0","method":"describe","id":1}' | python example_plugin.py 2>/dev/null
-
-# Install via uv
-uv tool install . && example-text-tool
-
-# Build as a standalone binary (from examples/python/, builds all subdirs or one)
-cd .. && ./build_binary.sh --test
-```
-
-### Node.js Plugin
-
-```bash
-cd examples/nodejs
-
-# Run directly
-node example_plugin.js
-
-# Test the protocol
-echo '{"jsonrpc":"2.0","method":"describe","id":1}' | node example_plugin.js 2>/dev/null
-
-# Build as a standalone binary (requires Node.js 18+)
-./build_binary.sh --test
-```
-
-### Go Plugin
-
-```bash
-cd examples/go
-
-# Run directly (each plugin has its own func main — pass the file explicitly)
-go run main.go
-
-# Test the protocol
-echo '{"jsonrpc":"2.0","method":"describe","id":1}' | go run main.go 2>/dev/null
-
-# Build a native binary
-go build -o dist/example-go-tool main.go
-
-# Build binaries for all platforms / all plugins
-make all
-```
-
-### Credential Plugins — API Key Pattern
-
-Each language includes a credential plugin example demonstrating how to declare and use platform-managed credentials:
-
-```bash
-# Python — Weather query (requires WEATHER_API_KEY)
-echo '{"jsonrpc":"2.0","method":"describe","id":1}' | \
-  python examples/python/credential-tool/credential_plugin.py 2>/dev/null
-
-# Provide credentials via environment variables for local development
-WEATHER_API_KEY=your_key python examples/python/credential-tool/credential_plugin.py
-
-# Node.js — GitHub query (requires GITHUB_TOKEN)
-echo '{"jsonrpc":"2.0","method":"describe","id":1}' | node examples/nodejs/credential_plugin.js 2>/dev/null
-
-# Go — Notion query (requires NOTION_TOKEN)
-echo '{"jsonrpc":"2.0","method":"describe","id":1}' | go run examples/go/credential_plugin.go 2>/dev/null
-```
-
-### Google OAuth Plugins — OAuth2 Token Pattern
-
-Each language also includes a Google OAuth plugin example showing how to consume OAuth access tokens injected by the platform. From the plugin's perspective, the API is identical to API Key — the platform handles all OAuth complexity (authorization, token exchange, auto-refresh):
-
-```bash
-# Python — Gmail read (requires GMAIL_ACCESS_TOKEN via Google OAuth)
-echo '{"jsonrpc":"2.0","method":"describe","id":1}' | \
-  python examples/python/google-oauth-tool/google_oauth_plugin.py 2>/dev/null
-
-# Node.js — Google Calendar (requires GOOGLE_ACCESS_TOKEN via Google OAuth)
-echo '{"jsonrpc":"2.0","method":"describe","id":1}' | node examples/nodejs/google_oauth_plugin.js 2>/dev/null
-
-# Go — Google Drive (requires GOOGLE_ACCESS_TOKEN via Google OAuth)
-echo '{"jsonrpc":"2.0","method":"describe","id":1}' | go run examples/go/google_oauth_plugin.go 2>/dev/null
-
-# Local development — provide token via env var
-GOOGLE_ACCESS_TOKEN=ya29.xxx node examples/nodejs/google_oauth_plugin.js
-```
-
-### Sampling Plugins (v2) — Reverse `sampling/createMessage`
-
-Plugins can ask the host to perform an LLM completion on their behalf. The host owns model selection, billing and quota — the plugin needs no API key. See [docs/sampling.md](https://anna.partners/developers/reference/executa-sampling).
-
-```bash
-# Python
-python examples/python/sampling-summarizer/sampling_summarizer.py
-
-# Node.js
-node examples/nodejs/sampling-tool.js
-
-# Go (separate go.mod inside the subdirectory)
-cd examples/go/sampling-tool && go run ./...
-```
-
-### Persistent Storage Plugins (v2) — Reverse `storage/*` + `files/*`
-
-Plugins can persist per-user / per-app state and upload binary
-attachments without holding any cloud-storage credential — Anna owns the
-bucket, encryption, quota and per-app ACL. See
-[docs/persistent-storage.md](https://anna.partners/developers/reference/executa-persistent-storage).
-
-```bash
-# Python
-python examples/python/storage-notebook/storage_notebook.py
-```
-
-## Distribution Methods
-
-| Method | Installation | Use Case |
-|--------|-------------|----------|
-| **uv** | `uv tool install <package>` | Python tools (recommended) |
-| **pipx** | `pipx install <package>` | Python tools |
-| **npm** | `npm install -g <package>` | Node.js tools |
-| **Homebrew** | `brew install <formula>` | macOS / Linux |
-| **Binary** | HTTP download | Pre-built binaries (any language) |
-| **Local** | Local archive on Agent host (`.tar.gz`/`.tgz`/`.zip` or raw exe) | Dev iteration, internal/air-gapped distribution — same install pipeline as Binary, supports multi-file binaries (see [`examples/multifile-binary/`](examples/multifile-binary/)) |
-
-## Documentation
-
-- [Protocol Specification](https://anna.partners/developers/reference/executa-protocol) — Full JSON-RPC 2.0 over stdio protocol definition
-- [Local Executa Runner](https://anna.partners/developers/reference/cli) — `anna-app executa dev`: run one plugin in isolation (REPL + one-shot)
-- [Platform Authorization](https://anna.partners/developers/reference/executa-credentials) — Credential declaration, auto-injection, and platform authorization integration
-- [Binary Distribution Guide](https://anna.partners/developers/reference/executa-distribution) — Building, signing, and multi-platform deployment
-- [Reverse Sampling](https://anna.partners/developers/reference/executa-sampling) — Plugins requesting LLM completions from the host
-- [Persistent Storage](https://anna.partners/developers/reference/executa-persistent-storage) — Per-user / per-app KV + object storage hosted by Anna
-- [Common Pitfalls](https://anna.partners/developers/reference/executa-pitfalls) — Read this first when a plugin shows as "Stopped"
-- [CreatorOS AI](examples/anna-app-creatoros-ai/README.md) — End-to-end creator workflow Anna App with chat UI, Composio integration, media upload fallback, review gates, and binary Executa distribution
-- [Anna App Example — Focus Flow](examples/anna-app-focus-flow/README.md) — End-to-end Anna App: 1 tool + 1 skill + premium UI bundle + full app manifest
-
-## License
-
-MIT
+See [DEPLOY.md](DEPLOY.md) for the full release procedure, binary packaging notes, Anna CLI lifecycle commands, and known CLI quirks.
